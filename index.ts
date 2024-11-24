@@ -7,12 +7,16 @@ import {
   RankedPlayer,
   QueryDateRange,
 } from "./src/types/index.js";
+import initDatabase from "./database/index.js";
 
 const _ItCountryCode = "IT";
 const _playersTracked = config.trackedPlayers;
 
 function Main() {
   console.log("API used: " + config.api);
+
+  const db = initDatabase();
+  console.log(db);
 
   const today = new Date();
   const pastDate = new Date();
