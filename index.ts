@@ -1,21 +1,35 @@
-import { config } from "./config.js";
-import axios from "axios";
+import config from "./config";
 import {
-  TeamMember,
+  PlayersMatches,
   Match,
   MatchId,
   RankedPlayer,
   QueryDateRange,
+  DbMatch,
+  PlayerMatch,
 } from "./src/types/index.js";
-import initDatabase from "./database/index.js";
+import initDatabase from "./database/index";
+import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch } from "./database/queries";
+import { Database } from "duckdb-async"; 
 
-const _ItCountryCode = "IT";
+const scriptParams = process.argv.slice(2);
+
+if(scriptParams.length > 0) {
+  if(scriptParams[0] === "debug") {
+}
+}
+
 const _playersTracked = config.trackedPlayers;
+let db: Database;
+initDatabase().then((_db) => {
+  db = _db;
 
-function Main() {
+  Main();
+});
+
+async function Main() {
   console.log("API used: " + config.api);
 
-  const db = initDatabase();
   console.log(db);
 
   const today = new Date();
@@ -30,181 +44,90 @@ function Main() {
 
   console.info("dal " + PastDateFormated + " | " + "al " + TodayteFormated);
 
-  GetLeaderboard(_playersTracked, dateRange).then((res) => {
-    let leaderboard: RankedPlayer[] = res;
+  const players = await LoadPlayersIds(db, _playersTracked);
+  console.log("tracked players", players);
 
-    // Order the leaderboard by rank
-    leaderboard.sort((a, b) => b.rank - a.rank);
+  const playersMatches = await LoadLeagueMatchIds(db, players);
+  console.log("playersMatches found", playersMatches.length);
 
-    // Print the leaderboard
-    console.log("Leaderboard:");
-    for (let i = 0; i < leaderboard.length; i++) {
-      console.log(leaderboard[i]?.name + " - " + leaderboard[i]?.rank);
-    }
-  });
+  const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), "2024-11-22T00:24:15.000Z");
+  console.log("matches found", matches.length);
+
+  console.log("Start parsing matches...");
+  const parsedMatches = await ParseMatches(matches, players, playersMatches);
+  console.log("parsed matches", parsedMatches);
 }
 
-async function GetPlayerRank(
-  playerName: string,
-  daterange: QueryDateRange,
-): Promise<number> {
-  let rank = 0;
-  const matches = await GetPlayerMatches(playerName, daterange);
-
-  for (let i = 0; i < matches.length; i++) {
-    let match: Match | null = null;
-
-    match = await GetMatchResult(matches[i], playerName);
-
-    if (CheckMatchCountryCompatibility(match, _ItCountryCode) >= 2) {
-      if (match?.hasWon) {
-        rank = rank + 2;
-      } else {
-        rank = rank + 1;
-      }
-    }
-  }
-  return rank;
-}
-
-async function GetPlayerMatches(
-  playerName: string,
-  daterange: QueryDateRange,
-): Promise<MatchId[]> {
-  const parsedMatches: MatchId[] = [];
-  try {
-    setTimeout(() => {}, parseInt(Math.random().toString().replace(/\,/g, ""))); //  0,00 to 1,0 delay
-    const response = await axios.get(
-      config.api +
-        "replays?" +
-        "page=1&limit=100&hasBots=false&endedNormally=true" +
-        "&date=" +
-        daterange.start +
-        "&date=" +
-        daterange.end +
-        "&players=" +
-        playerName,
-    );
-    for (let i = 0; i < response.data.data.length; i++) {
-      parsedMatches[i] = response.data.data[i].id as MatchId;
-    }
-
-    return parsedMatches;
-  } catch (error) {
-    console.log(error);
-
-    throw Error("Error while getting matches");
-  }
-}
-
-async function GetMatchResult(matchId: MatchId, playerName: string) {
-  const matchData: Match = {
-    id: matchId,
-    loosingTeam: [],
-    winningTeam: [],
-  };
-
-  try {
-    setTimeout(() => {}, parseInt(Math.random().toString().replace(/\,/g, ""))); //  0,00 to 1,0 delay
-    const response = await axios.get(config.api + "replays/" + matchId);
-
-    const teams = response.data.AllyTeams;
-
-    const winTeam: TeamMember[] = [];
-    const losTeam: TeamMember[] = [];
-
-    // Get winning and loosing team
-    for (let i = 0; i < teams.length; i++) {
-      for (let ii = 0; ii < teams[i].Players.length; ii++) {
-        const player = teams[i].Players[ii];
-        const parsedPlayer: TeamMember = {
-          name: player.name,
-          country: player.countryCode,
-        };
-
-        if (teams[i].winningTeam) {
-          winTeam.push(parsedPlayer);
-
-          if (parsedPlayer.name == playerName) {
-            matchData.hasWon = true;
-          }
+// Parse matches with the following structure:
+// {
+//   match_id: string;
+//   start_time: string;
+//   winning_team: string[]; // player ids
+//   losing_team: string[]; // player ids
+//   map: string;
+// }
+//
+// Return an array of Match objects
+async function ParseMatches(matches: DbMatch[],_trackedPlayers: PlayersMatches, playersMatches: PlayerMatch[]): Promise<Match[]> {
+  return await Promise.all(
+    matches.map(async (m, index) => {
+      const winningTeam: PlayersMatches = {};
+      const losingTeam: PlayersMatches = {};
+  
+      
+      // const matchPlayers: PlayerMatch[] = playersMatches.filter((pm) => {
+      //   console.log("hey", pm.matchId, m.match_id);
+      //   return pm.matchId === m.match_id;
+      // });
+      // console.log(matchPlayers);
+      
+      const trackedPlayers: string[] = [];
+      const matchPlayers: PlayerMatch[] = await LoadPlayersInMatch(db, m.match_id);
+      
+      matchPlayers.forEach((mp, i) => {
+        const winningTeamID: string = m.winning_team as string;
+        const playerTeamId: string = mp.teamId as string;
+        
+        if(_trackedPlayers[mp.userId]) {
+        // Add player to the winning or losing team
+        if (playerTeamId === winningTeamID) {
+          winningTeam[mp.userId] = {  teamId: mp.teamId, name: _trackedPlayers[mp.userId]?.name };
         } else {
-          losTeam.push(parsedPlayer);
-
-          if (parsedPlayer.name == playerName) {
-            matchData.hasWon = false;
-          }
+          losingTeam[mp.userId] = {  teamId: mp.teamId, name: _trackedPlayers[mp.userId]?.name };
         }
-      }
-    }
 
-    matchData.loosingTeam = losTeam;
-    matchData.winningTeam = winTeam;
-  } catch (error) {
-    console.log(error);
-    throw Error("Error while getting match result");
-  } finally {
-    return matchData;
-  }
+        // Add players in the tracked players list present in the match to the match tracked players list
+
+          trackedPlayers.push(mp.userId);
+        }
+        if(_trackedPlayers[mp.userId]) {
+
+          matchPlayers[i].name = _trackedPlayers[mp.userId].name;
+        }
+      });
+
+      console.log("parsed match id " + m.match_id);
+      console.log("players in match", matchPlayers);
+      console.log("- tracked players", trackedPlayers);
+      console.log("- winning team", winningTeam);
+      console.log("- losing team", losingTeam);
+      console.log("- start time", m.start_time);
+      console.log("- map", m.map);
+      console.log("- game mode", m.game_type);
+      console.log(`----------------------- ${index+1}/${matches.length} --------------------------`);
+  
+      return {
+        id: m.match_id as MatchId,
+        loosingTeam: losingTeam,
+        winningTeam: winningTeam,
+        winningTeamId: m.winning_team,
+        startTime: m.start_time,
+        map: m.map,
+        trackedPlayersIds: trackedPlayers,
+        gameMode: m.game_type
+      } as Match;
+  
+    })
+  )
 }
 
-function CheckMatchCountryCompatibility(
-  match: Match,
-  countryCode: string,
-): number {
-  if (!match) return 0;
-
-  let matchedPlayers = 0;
-  for (let i = 0; i < match.winningTeam.length; i++) {
-    if (match.winningTeam[i].country == countryCode) {
-      matchedPlayers++;
-    }
-  }
-
-  for (let i = 0; i < match.loosingTeam.length; i++) {
-    if (match.loosingTeam[i].country == countryCode) {
-      matchedPlayers++;
-    }
-  }
-
-  return matchedPlayers;
-}
-
-// const listita = ["CanestroAnale"]; //lista italiani.
-
-// function CheckTeamCountryCompatibility(team, matchCountry) {
-//   //usare teams non team e ciclare teams
-//   const matchedPlayers = 0;
-//   //aggiunto list di nomi autorizzati ita per chi ha country non ita.
-//   for (let i = 0; i < team.length; i++) {
-//     if (Listcontain(listita, team[i].name) || team[i].country == matchCountry) {
-//       matchedPlayers++;
-//     }
-//   }
-
-//   return matchedPlayers;
-// }
-
-// function Listcontain(list, item) {
-//   for (let i = 0; i < list.length; i++) {
-//     if (list[i] == item) return true;
-//   }
-// }
-
-async function GetLeaderboard(
-  players: string[],
-  daterange: QueryDateRange,
-): Promise<RankedPlayer[]> {
-  let lb: RankedPlayer[] = [];
-  for (let i = 0; i < players.length; i++) {
-    const r = await GetPlayerRank(_playersTracked[i], daterange);
-    lb.push({
-      name: _playersTracked[i],
-      rank: r,
-    });
-  }
-
-  return lb;
-}
-
-Main();

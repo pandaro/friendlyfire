@@ -1,4 +1,4 @@
-export var config: Config = {
+const config: Config = {
   api: "https://api.bar-rts.com/",
   trackedPlayers: [
     "bio",
@@ -24,6 +24,8 @@ export var config: Config = {
     "Jenny4Real",
   ],
 };
+
+export default config;
 
 interface Config {
   api: string;

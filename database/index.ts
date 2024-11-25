@@ -1,7 +1,7 @@
-import duckdb from 'duckdb';
+import { Database} from 'duckdb-async';
 
-function initDatabase(): duckdb.Database {
-const db = new duckdb.Database('https://data-marts.beyondallreason.dev/matches.parquet');
+async function initDatabase(): Promise<Database> {
+const db = await Database.create(':memory:');   
 
 return db;
 }
