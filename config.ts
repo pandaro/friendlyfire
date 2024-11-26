@@ -1,3 +1,5 @@
+import SimpleAlgo from "./src/algos/simple";
+
 const config: Config = {
   api: "https://api.bar-rts.com/",
   trackedPlayers: [
@@ -23,6 +25,7 @@ const config: Config = {
     "Senzascopo",
     "Jenny4Real",
   ],
+  usedAlgorithm: SimpleAlgo,
 };
 
 export default config;
@@ -30,4 +33,5 @@ export default config;
 interface Config {
   api: string;
   trackedPlayers: string[];
+  usedAlgorithm: Function;
 }
