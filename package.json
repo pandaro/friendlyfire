@@ -13,6 +13,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@keyvhq/core": "^2.1.1",
+    "@keyvhq/file": "^2.1.5",
     "@types/node": "^18.0.6",
     "axios": "^1.7.7",
     "duckdb": "^1.1.3",

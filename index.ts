@@ -7,8 +7,9 @@ import {
   QueryDateRange,
   DbMatch,
   PlayerMatch,
+  LocalDatabase,
 } from "./src/types/index.js";
-import initDatabase from "./database/index";
+import initDatabase, { initLocalDatabase } from "./database/index";
 import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch } from "./database/queries";
 import { Database } from "duckdb-async"; 
 
@@ -21,6 +22,7 @@ if(scriptParams.length > 0) {
 
 const _playersTracked = config.trackedPlayers;
 let db: Database;
+const localDb: LocalDatabase = initLocalDatabase();
 initDatabase().then((_db) => {
   db = _db;
 

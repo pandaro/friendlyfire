@@ -1,14 +1,15 @@
+import { Store } from "@keyvhq/core";
+
 // Define an interface to represent a team member
 export interface PlayersMatches { [key: string]: {name?: string, teamId?: string} }
 export interface PlayerMatch { name?: string, teamId: string , userId: string, matchId: string }
 // Define an interface for a match
 export interface Match {
   id: MatchId;
-  loosingTeam: PlayersMatches;
-  winningTeam: PlayersMatches;
+  loosingTeam: string[];
+  winningTeam: string[];
   startTime: string;
   map: string;
-  trackedPlayersIds: string[];
   gameMode: string;
 }
 
@@ -29,6 +30,33 @@ export interface DbMatch {
 export interface RankedPlayer {
   name: string;
   rank: number;
+}
+
+export interface LocalDatabase {
+  matches: Store<MatchId, Match>;
+  players: Store<string, any>;
+  league: Store<string, any>;
+}
+
+export interface LocalPlayer {
+  points: number;
+  maps: { [key: string]: number };
+  teamMates: { [key: string]: number };
+}
+
+export interface LocalMatch {
+  id: string;
+  startTime: string;
+  map: string;
+  gameMode: string;
+  winningTeam: string[];
+  loosingTeam: string[];
+}
+
+export interface LocalLeague {
+  lastMatchId: string;
+  lastMatchStartTime: string;
+  leaderboard: {userId: string, points: number}[];
 }
 
 export type MatchId = string;
