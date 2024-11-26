@@ -8,7 +8,7 @@ import {
   DbMatch,
   PlayerMatch,
 } from "./src/types/index.js";
-import initDatabase from "./database/index";
+import initDatabase, { insertMatch } from "./database/index";
 import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch } from "./database/queries";
 import { Database } from "duckdb-async"; 
 
@@ -50,7 +50,7 @@ async function Main() {
   const playersMatches = await LoadLeagueMatchIds(db, players);
   console.log("playersMatches found", playersMatches.length);
 
-  const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), "2024-11-22T00:24:15.000Z");
+  const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), "2024-10-25T00:24:15.000Z");
   console.log("matches found", matches.length);
 
   console.log("Start parsing matches...");
@@ -116,7 +116,7 @@ async function ParseMatches(matches: DbMatch[],_trackedPlayers: PlayersMatches, 
       console.log("- game mode", m.game_type);
       console.log(`----------------------- ${index+1}/${matches.length} --------------------------`);
   
-      return {
+      const parsedMatch: Match = {
         id: m.match_id as MatchId,
         loosingTeam: losingTeam,
         winningTeam: winningTeam,
@@ -126,6 +126,18 @@ async function ParseMatches(matches: DbMatch[],_trackedPlayers: PlayersMatches, 
         trackedPlayersIds: trackedPlayers,
         gameMode: m.game_type
       } as Match;
+      console.log("parsed match");
+      await insertMatch(db, parsedMatch);
+      console.log("--inserted match", parsedMatch.id);
+      const testQuery = await db.all(`SELECT * FROM Matches`, (err: any) => {
+        if (err) {
+          console.warn(err);
+          return;
+        }
+      });
+      console.log("test query after insert", testQuery[index]);
+
+      return parsedMatch;
   
     })
   )
