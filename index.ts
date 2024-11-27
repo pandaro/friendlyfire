@@ -54,7 +54,7 @@ async function Main() {
   const playersMatches = await LoadLeagueMatchIds(db, players);
   console.log("playersMatches found", playersMatches.length);
 
-  const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), "2024-11-22T00:24:15.000Z");
+  const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), "2024-10-15T00:24:15.000Z");
   console.log("matches found", matches.length);
 
   console.log("Start parsing matches...");

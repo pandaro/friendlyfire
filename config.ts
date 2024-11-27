@@ -1,4 +1,4 @@
-import SimpleAlgo from "./src/algos/simple";
+import SemiCompetitiveAlgo from "./src/algos/semi_competitive";
 
 const config: Config = {
   api: "https://api.bar-rts.com/",
@@ -18,14 +18,24 @@ const config: Config = {
     "Ale1199",
     "[ETC]Ralos90",
     "[ETC]ThePunisher8731",
-    "Doxop",
+    "doxop",
     "Flaka",
     "Furious_Porcupine",
     "Gattone01",
     "Senzascopo",
     "Jenny4Real",
+    "malsi",
+    "PruritoIntimo",
+    "neuris",
+    "TeoPorco",
+    "Ruggi",
+    "Uniforce",
+    "NewPlayer1",
+    "Wildcat",
+    "ANTIHUMAN",
+    "Shimada",
   ],
-  usedAlgorithm: SimpleAlgo,
+  usedAlgorithm: SemiCompetitiveAlgo,
 };
 
 export default config;

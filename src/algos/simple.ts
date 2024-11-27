@@ -1,3 +1,9 @@
+/* 
+  Simple Algorithm
+  Version: 0.1
+  Author: CanestroAnale
+  Description: This algorithm assigns 2 points to the winning team and 1 point to the losing team.
+*/
 import {
   GetLeagueData,
   GetPlayerData,
