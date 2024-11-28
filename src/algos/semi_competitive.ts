@@ -4,6 +4,7 @@
   Author: CanestroAnale
   Description: wip
 */
+import { _playersTracked, _playersTrackedParsed } from "../..";
 import {
   GetLeagueData,
   GetPlayerData,
@@ -28,11 +29,11 @@ export default async function SemiCompetitiveAlgo(
   // Process winningTeam sequentially
   for (const player of winningTeam) {
     if (await db.players.get(player)) {
-      await AddWinningPlayerPoints(player, map, nTrackedPlayers, db);
+      await AddWinningPlayerPoints(player, map, db);
     } else {
       console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
-      await AddWinningPlayerPoints(player, map, nTrackedPlayers, db);
+      await AddWinningPlayerPoints(player, map, db);
     }
 
     // Add points from tracked players encounters in winning team
@@ -50,11 +51,11 @@ export default async function SemiCompetitiveAlgo(
   // Process loosingTeam sequentially
   for (const player of loosingTeam) {
     if (await db.players.get(player)) {
-      await AddLoosingPlayerPoints(player, map, nTrackedPlayers, db);
+      await AddLoosingPlayerPoints(player, map, db);
     } else {
       console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
-      await AddLoosingPlayerPoints(player, map, nTrackedPlayers, db);
+      await AddLoosingPlayerPoints(player, map, db);
     }
 
     // Add points from tracked players encounters in loosing team
@@ -100,17 +101,14 @@ async function UpdateLeague(
 async function AddWinningPlayerPoints(
   playerId: string,
   map: string,
-  nTrackedPlayers: number,
   db: LocalDatabase
 ) {
   const playerData = await GetPlayerData(db.players, playerId);
-  if (!playerData.maps[map]) playerData.maps[map] = 0;
-  playerData.maps[map]++;
+  const leagueData = await GetLeagueData(db.league, "league");
+  if (!playerData.wins[map]) playerData.wins[map] = 0;
+  playerData.wins[map]++;
 
-  let points = Math.min(20 - playerData.maps[map] / 2, 2);
-
-  // Give 10 points for each encountered tracked player
-  points += (nTrackedPlayers - 1) * 10;
+  let points = Math.min(20 - playerData.wins[map] / 2, 2);
 
   playerData.points += Math.round(points);
 
@@ -120,27 +118,17 @@ async function AddWinningPlayerPoints(
 async function AddLoosingPlayerPoints(
   playerId: string,
   map: string,
-  nTrackedPlayers: number,
   db: LocalDatabase
 ) {
   const playerData = await GetPlayerData(db.players, playerId);
-  if (!playerData.maps[map]) playerData.maps[map] = 0;
+  if (!playerData.wins[map]) playerData.wins[map] = 0;
+  if (!playerData.losses[map]) playerData.losses[map] = 0;
+  playerData.losses[map]++;
 
-  const points = playerData.maps[map];
-  playerData.points -= Math.round(points);
-
-  // Give 10 points for each encountered tracked player
-  playerData.points += (nTrackedPlayers - 1) * 10;
+  const points = playerData.wins[map] / 2;
+  playerData.points -= Math.min(Math.round(points), 19);
 
   await SetPlayerData(db.players, playerData, playerId);
-}
-
-async function AddPlayerToDatabase(db: LocalDatabase, playerId: string) {
-  console.log(`Adding ${playerId} to database`);
-  const _p = { points: 0, maps: {}, teamMates: {} };
-  await SetPlayerData(db.players, _p, playerId);
-
-  await AddPlayerToLeaderboard(playerId, db);
 }
 
 async function AddTrackedEncounterPoints(
@@ -149,22 +137,56 @@ async function AddTrackedEncounterPoints(
   encounterPlayerId: string
 ) {
   const playerData = await GetPlayerData(db.players, playerId);
+  const leagueData = await GetLeagueData(db.league, "league");
 
   if (!playerData.teamMates[encounterPlayerId])
     playerData.teamMates[encounterPlayerId] = 0;
 
   playerData.points += Math.min(
-    10 - Math.min(playerData.teamMates[encounterPlayerId] / 2, 0),
+    20 - Math.round(playerData.teamMates[encounterPlayerId] / 2),
     2
   );
+
+  // Deprecated idea to incentivize players to play with lower ranked players
+  // const pPosition = leagueData.leaderboard.findIndex(
+  //   (l) => l.userId === encounterPlayerId
+  // );
+  // playerData.points += (pPosition);
+
+  playerData.points += 5;
+
 
   playerData.teamMates[encounterPlayerId]++;
 
   await SetPlayerData(db.players, playerData, playerId);
 }
 
+async function AddPlayerToDatabase(db: LocalDatabase, playerId: string) {
+  console.log(`Adding ${playerId} to database`);
+  const _p = { points: 0, maps: {}, teamMates: {}, wins: {}, losses: {} };
+  await SetPlayerData(db.players, _p, playerId);
+
+  await AddPlayerToLeaderboard(playerId, db);
+}
+
 async function DebugLeaderboard(db: LocalDatabase) {
-  const leaderboard = await GetLeagueData(db.league, "league");
+  const league = await GetLeagueData(db.league, "league");
+
+  // Parse leaderboard data by adding user names
+  const leaderboard = await Promise.all(
+    league.leaderboard.map(async (l) => {
+      const playerData = await GetPlayerData(db.players, l.userId);
+      const matchesWon = Object.values(playerData.wins).reduce((a, b) => a + b, 0);
+      const matchesLost = Object.values(playerData.losses).reduce((a, b) => a + b, 0);
+      const matchesPlayed = matchesWon + matchesLost;
+      const playerName = _playersTrackedParsed.find((p) => p.id === l.userId)?.name;
+      // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
+      return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
+    })
+  );
+
+
+
   console.log("League updated! ", leaderboard);
 }
 

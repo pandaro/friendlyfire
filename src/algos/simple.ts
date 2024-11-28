@@ -114,7 +114,7 @@ async function AddLoosingPlayerPoints(playerId: string, db: LocalDatabase) {
 
 async function AddPlayerToDatabase(db: LocalDatabase, playerId: string) {
   console.log(`Adding ${playerId} to database`);
-  const _p = { points: 0, maps: {}, teamMates: {} };
+  const _p = { points: 0, wins: {}, teamMates: {}, losses: {} };
   await SetPlayerData(db.players, _p, playerId);
 
   await AddPlayerToLeaderboard(playerId, db);

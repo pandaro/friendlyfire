@@ -20,7 +20,8 @@ if(scriptParams.length > 0) {
 }
 }
 
-const _playersTracked = config.trackedPlayers;
+export var _playersTracked = config.trackedPlayers;
+export var _playersTrackedParsed: {id?: string, name?: string}[] = [];
 let db: Database;
 const localDb: LocalDatabase = initLocalDatabase();
 
@@ -50,6 +51,12 @@ async function Main() {
 
   const players = await LoadPlayersIds(db, _playersTracked);
   console.log("tracked players", players);
+
+  // Add player id to the tracked players
+  _playersTrackedParsed = _playersTracked.map((player) => {
+    const id = Object.keys(players).find((key) => players[key].name === player);
+    return {id: id, name: player };
+  });
 
   const playersMatches = await LoadLeagueMatchIds(db, players);
   console.log("playersMatches found", playersMatches.length);
