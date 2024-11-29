@@ -22,6 +22,7 @@ export default async function SemiCompetitiveAlgo(
   const winningTeam = match.winningTeam;
   const loosingTeam = match.loosingTeam;
   const map = match.map;
+  const gameMode = match.gameMode;
   const nTrackedPlayers = winningTeam.length + loosingTeam.length;
 
   await SetMatchData(db.matches, match, match.id);
@@ -30,10 +31,12 @@ export default async function SemiCompetitiveAlgo(
   for (const player of winningTeam) {
     if (await db.players.get(player)) {
       await AddWinningPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
     } else {
       console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
       await AddWinningPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
     }
 
     // Add points from tracked players encounters in winning team
@@ -52,10 +55,14 @@ export default async function SemiCompetitiveAlgo(
   for (const player of loosingTeam) {
     if (await db.players.get(player)) {
       await AddLoosingPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
+
     } else {
       console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
       await AddLoosingPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
+
     }
 
     // Add points from tracked players encounters in loosing team
@@ -98,6 +105,41 @@ async function UpdateLeague(
   await SetLeagueData(db.league, league, "league");
 }
 
+
+async function AddGameModePlayerPoints(
+  //bots,raptors,scavs,duel,smallteams,largeteams,duel,ffa,teamffa
+  playerId: string,
+  gameMode: string,
+  db: LocalDatabase
+) {
+  const playerData = await GetPlayerData(db.players, playerId);
+  const leagueData = await GetLeagueData(db.league, "league");
+
+  if (!playerData.mode[gameMode]) playerData.mode[gameMode] = 0;
+  playerData.mode[gameMode] += 1;
+  console.log(`Player ${playerId} playMode:`, gameMode,playerData.mode[gameMode]);
+  let totalMode = 0
+  let ratioModes = 0
+  let maxMode = 0
+  const keys = Object.keys(playerData.mode);
+  keys.forEach((key) => {
+    maxMode = Math.max(maxMode,playerData.mode[key as keyof typeof playerData.mode]);
+    totalMode = totalMode + playerData.mode[key as keyof typeof playerData.mode];
+    //console.log('key',key,playerData.mode[key as keyof typeof playerData.mode]);
+
+  });
+  ratioModes =  playerData.mode[gameMode] / maxMode;
+  let points = Math.min(Math.round(10 * (1-ratioModes)),10)
+  console.log('maxMode',maxMode,'thisMode',playerData.mode[gameMode], 'ratioModes',playerData.mode[gameMode]/totalMode,'points',points,playerData.mode);
+
+
+
+  playerData.points += points;
+
+  await SetPlayerData(db.players, playerData, playerId);
+}
+
+
 async function AddWinningPlayerPoints(
   playerId: string,
   map: string,
@@ -114,6 +156,8 @@ async function AddWinningPlayerPoints(
 
   await SetPlayerData(db.players, playerData, playerId);
 }
+
+
 
 async function AddLoosingPlayerPoints(
   playerId: string,
