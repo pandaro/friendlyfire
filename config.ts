@@ -46,6 +46,10 @@ const config: Config = {
     "Stelfirio",
     "Sult4",
     "thefallen5555",
+    "SuperShallo338",
+    "IcoMac",
+    "Bardack89",
+    "IlBuff3R"
   ],
   usedAlgorithm: SemiCompetitiveAlgo,
 };
