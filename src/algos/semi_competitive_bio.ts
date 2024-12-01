@@ -117,25 +117,16 @@ async function AddGameModePlayerPoints(
 
   if (!playerData.mode[gameMode]) playerData.mode[gameMode] = 0;
   playerData.mode[gameMode] += 1;
-  console.log(`Player ${playerId} playMode:`, gameMode,playerData.mode[gameMode]);
-  let totalMode = 0
   let ratioModes = 0
   let maxMode = 0
   const keys = Object.keys(playerData.mode);
   keys.forEach((key) => {
     maxMode = Math.max(maxMode,playerData.mode[key as keyof typeof playerData.mode]);
-    totalMode = totalMode + playerData.mode[key as keyof typeof playerData.mode];
-    //console.log('key',key,playerData.mode[key as keyof typeof playerData.mode]);
-
   });
   ratioModes =  playerData.mode[gameMode] / maxMode;
   let points = Math.min(Math.round(10 * (1-ratioModes)),10)
-  console.log('maxMode',maxMode,'thisMode',playerData.mode[gameMode], 'ratioModes',playerData.mode[gameMode]/totalMode,'points',points,playerData.mode);
-
-
-
+  console.log(`Player ${playerId} playMode:`, gameMode,playerData.mode[gameMode],'maxMode',maxMode,'thisMode',playerData.mode[gameMode], 'ratioModes',ratioModes,'points',points,playerData.mode);
   playerData.points += points;
-
   await SetPlayerData(db.players, playerData, playerId);
 }
 
@@ -225,13 +216,15 @@ async function DebugLeaderboard(db: LocalDatabase) {
       const matchesPlayed = matchesWon + matchesLost;
       const playerName = _playersTrackedParsed.find((p) => p.id === l.userId)?.name;
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
-      return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
+      // return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
+      return {P: l.points, Name: playerName, matches_win: `${matchesWon}/${matchesPlayed}`};
     })
   );
 
 
 
   console.log("League updated! ", leaderboard);
+
 }
 
 async function AddPlayerToLeaderboard(playerId: string, db: LocalDatabase) {
