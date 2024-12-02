@@ -43,6 +43,7 @@ export interface LocalPlayer {
   wins: { [key: string]: number };
   losses: { [key: string]: number };
   teamMates: { [key: string]: number };
+  mode: { [key: string]: number };
 }
 
 export interface LocalMatch {

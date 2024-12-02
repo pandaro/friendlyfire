@@ -1,4 +1,4 @@
-import SemiCompetitiveAlgo from "./src/algos/semi_competitive";
+import SemiCompetitiveAlgo from "./src/algos/semi_competitive_bio";
 
 const config: Config = {
   api: "https://api.bar-rts.com/",
@@ -46,6 +46,10 @@ const config: Config = {
     "Stelfirio",
     "Sult4",
     "thefallen5555",
+    "SuperShallo338",
+    "IcoMac",
+    "Bardack89",
+    "IlBuff3R"
   ],
   usedAlgorithm: SemiCompetitiveAlgo,
 };
