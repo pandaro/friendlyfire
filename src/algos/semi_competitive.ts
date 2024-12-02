@@ -22,6 +22,7 @@ export default async function SemiCompetitiveAlgo(
   const winningTeam = match.winningTeam;
   const loosingTeam = match.loosingTeam;
   const map = match.map;
+  const gameMode = match.gameMode;
   const nTrackedPlayers = winningTeam.length + loosingTeam.length;
 
   await SetMatchData(db.matches, match, match.id);
@@ -30,10 +31,12 @@ export default async function SemiCompetitiveAlgo(
   for (const player of winningTeam) {
     if (await db.players.get(player)) {
       await AddWinningPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
     } else {
       console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
       await AddWinningPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
     }
 
     // Add points from tracked players encounters in winning team
@@ -52,10 +55,14 @@ export default async function SemiCompetitiveAlgo(
   for (const player of loosingTeam) {
     if (await db.players.get(player)) {
       await AddLoosingPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
+
     } else {
       console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
       await AddLoosingPlayerPoints(player, map, db);
+      await AddGameModePlayerPoints(player, gameMode, db)
+
     }
 
     // Add points from tracked players encounters in loosing team
@@ -98,6 +105,37 @@ async function UpdateLeague(
   await SetLeagueData(db.league, league, "league");
 }
 
+
+async function AddGameModePlayerPoints(
+  //bots,raptors,scavs,duel,smallteams,largeteams,duel,ffa,teamffa
+  playerId: string,
+  gameMode: string,
+  db: LocalDatabase
+) {
+  const playerData = await GetPlayerData(db.players, playerId);
+  const leagueData = await GetLeagueData(db.league, "league");
+
+  if (!playerData.mode[gameMode]) playerData.mode[gameMode] = 0;
+  playerData.mode[gameMode] += 1;
+  let ratioModes = 0
+  let maxMode = 0
+  const keys = Object.keys(playerData.mode);
+  keys.forEach((key) => {
+    maxMode = Math.max(maxMode,playerData.mode[key as keyof typeof playerData.mode]);
+  });
+  ratioModes =  playerData.mode[gameMode] / maxMode;
+  let points = Math.min(Math.round(10 * (1-ratioModes)),10)
+  playerData.points += points;
+
+
+  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  console.log("Game mode ->" + playerName + " gets " + Math.round(points));
+
+
+  await SetPlayerData(db.players, playerData, playerId);
+}
+
+
 async function AddWinningPlayerPoints(
   playerId: string,
   map: string,
@@ -112,8 +150,14 @@ async function AddWinningPlayerPoints(
 
   playerData.points += Math.round(points);
 
+
+  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  console.log("winning ->" + playerName + " gets " + Math.round(points));
+
   await SetPlayerData(db.players, playerData, playerId);
 }
+
+
 
 async function AddLoosingPlayerPoints(
   playerId: string,
@@ -125,8 +169,12 @@ async function AddLoosingPlayerPoints(
   if (!playerData.losses[map]) playerData.losses[map] = 0;
   playerData.losses[map]++;
 
-  const points = playerData.wins[map] / 2;
-  playerData.points -= Math.min(Math.round(points), 19);
+  let points = playerData.wins[map] / 2;
+  points = Math.min(Math.round(points), 19);
+  playerData.points -= points;
+
+  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  console.log("loosing ->" + playerName + " looses " + Math.round(points));
 
   await SetPlayerData(db.players, playerData, playerId);
 }
@@ -142,10 +190,11 @@ async function AddTrackedEncounterPoints(
   if (!playerData.teamMates[encounterPlayerId])
     playerData.teamMates[encounterPlayerId] = 0;
 
-  playerData.points += Math.min(
+  const points = Math.max(
     20 - Math.round(playerData.teamMates[encounterPlayerId] / 2),
     2
   );
+  playerData.points += points;
 
   // Deprecated idea to incentivize players to play with lower ranked players
   // const pPosition = leagueData.leaderboard.findIndex(
@@ -154,6 +203,10 @@ async function AddTrackedEncounterPoints(
   // playerData.points += (pPosition);
 
   playerData.points += 5;
+
+
+  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  console.log("players ->" + playerName + " gets " + 5 + " + " + Math.round(points));
 
 
   playerData.teamMates[encounterPlayerId]++;
@@ -181,13 +234,15 @@ async function DebugLeaderboard(db: LocalDatabase) {
       const matchesPlayed = matchesWon + matchesLost;
       const playerName = _playersTrackedParsed.find((p) => p.id === l.userId)?.name;
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
-      return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
+      // return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
+      return {P: l.points, Name: playerName, matches_win: `${matchesWon}/${matchesPlayed}`};
     })
   );
 
 
 
   console.log("League updated! ", leaderboard);
+
 }
 
 async function AddPlayerToLeaderboard(playerId: string, db: LocalDatabase) {
