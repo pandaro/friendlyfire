@@ -1,3 +1,9 @@
+/* 
+  Simple Algorithm
+  Version: 0.1
+  Author: CanestroAnale
+  Description: This algorithm assigns 2 points to the winning team and 1 point to the losing team.
+*/
 import {
   GetLeagueData,
   GetPlayerData,
@@ -108,7 +114,7 @@ async function AddLoosingPlayerPoints(playerId: string, db: LocalDatabase) {
 
 async function AddPlayerToDatabase(db: LocalDatabase, playerId: string) {
   console.log(`Adding ${playerId} to database`);
-  const _p = { points: 0, maps: {}, teamMates: {} };
+  const _p = { points: 0, wins: {}, teamMates: {}, losses: {}, mode:{} };
   await SetPlayerData(db.players, _p, playerId);
 
   await AddPlayerToLeaderboard(playerId, db);

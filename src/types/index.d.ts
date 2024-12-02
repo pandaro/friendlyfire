@@ -40,8 +40,10 @@ export interface LocalDatabase {
 
 export interface LocalPlayer {
   points: number;
-  maps: { [key: string]: number };
+  wins: { [key: string]: number };
+  losses: { [key: string]: number };
   teamMates: { [key: string]: number };
+  mode: { [key: string]: number };
 }
 
 export interface LocalMatch {
