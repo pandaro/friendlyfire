@@ -32,9 +32,9 @@ initDatabase().then((_db) => {
 });
 
 async function Main() {
-  console.log("API used: " + config.api);
+  // console.log("API used: " + config.api);
 
-  console.log(db);
+  // console.log(db);
 
 
   const today = new Date();
@@ -47,7 +47,7 @@ async function Main() {
     end: TodayteFormated,
   };
 
-  console.info("dal " + PastDateFormated + " | " + "al " + TodayteFormated);
+  // console.info("dal " + PastDateFormated + " | " + "al " + TodayteFormated);
 
   const players = await LoadPlayersIds(db, _playersTracked);
   console.log("tracked players", players);
@@ -66,7 +66,7 @@ async function Main() {
 
   console.log("Start parsing matches...");
   const parsedMatches = await ParseMatches(matches, players, playersMatches);
-  console.log("parsed matches", parsedMatches);
+  // console.log("parsed matches", parsedMatches);
 }
 
 // Parse matches with the following structure:
