@@ -29,15 +29,12 @@ export default async function SemiCompetitiveAlgo(
 
   // Process winningTeam sequentially
   for (const player of winningTeam) {
-    if (await db.players.get(player)) {
-      await AddWinningPlayerPoints(player, map, db);
-      await AddGameModePlayerPoints(player, gameMode, db)
-    } else {
-      console.log(`Player ${player} not found in database`);
+    if (!await db.players.get(player)) {
       await AddPlayerToDatabase(db, player);
-      await AddWinningPlayerPoints(player, map, db);
-      await AddGameModePlayerPoints(player, gameMode, db)
     }
+
+    await AddWinningPlayerPoints(player, map, db);
+    await AddGameModePlayerPoints(player, gameMode, db)
 
     // Add points from tracked players encounters in winning team
     for (const encounterPlayer of winningTeam) {
@@ -53,18 +50,14 @@ export default async function SemiCompetitiveAlgo(
 
   // Process loosingTeam sequentially
   for (const player of loosingTeam) {
-    if (await db.players.get(player)) {
-      await AddLoosingPlayerPoints(player, map, db);
-      await AddGameModePlayerPoints(player, gameMode, db)
-
-    } else {
+    if (!await db.players.get(player)) {
       console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
-      await AddLoosingPlayerPoints(player, map, db);
-      await AddGameModePlayerPoints(player, gameMode, db)
+   }
 
-    }
 
+   await AddLoosingPlayerPoints(player, map, db);
+   await AddGameModePlayerPoints(player, gameMode, db)
     // Add points from tracked players encounters in loosing team
     for (const encounterPlayer of loosingTeam) {
       if (encounterPlayer !== player) {
