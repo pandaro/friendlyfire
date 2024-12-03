@@ -1,4 +1,4 @@
-import SemiCompetitiveAlgo from "./src/algos/semi_competitive_bio";
+import SemiCompetitiveAlgo from "./src/algos/semi_competitive";
 
 const config: Config = {
   api: "https://api.bar-rts.com/",
