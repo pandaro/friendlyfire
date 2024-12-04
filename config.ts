@@ -1,6 +1,8 @@
 import SemiCompetitiveAlgo from "./src/algos/semi_competitive";
 
 const config: Config = {
+  StartTime: "2024-10-15",//Formato valido: 2024-10-15T00:24:15.000Z
+  EndTime: new Date().toISOString().toString(),//non funziona da passare alle query
   api: "https://api.bar-rts.com/",
   trackedPlayers: [
     "bio",
@@ -55,8 +57,9 @@ const config: Config = {
 };
 
 export default config;
-
 interface Config {
+  EndTime: string;
+  StartTime: string;
   api: string;
   trackedPlayers: string[];
   usedAlgorithm: Function;

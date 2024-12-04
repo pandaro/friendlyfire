@@ -73,12 +73,12 @@ export async function LoadLeagueMatchIds(db: Database, playersMatches: PlayersMa
     return matches;
 }
 
-export async function LoadMatches(db: Database, matchIds: string[], startTime: string): Promise<DbMatch[]> {
+export async function LoadMatches(db: Database, matchIds: string[], startTime: Date): Promise<DbMatch[]> {
     const parsedMatches = matchIds.map(match => `'${match}'`).join(',');
     const query = `
     SELECT *
     FROM 'https://data-marts.beyondallreason.dev/matches.parquet'
-    WHERE match_id IN (${parsedMatches}) AND start_time >= '${startTime}';
+    WHERE match_id IN (${parsedMatches}) AND start_time >= '${startTime.toISOString()}';
     `; 
 
     // AND start_time >= '${startTime}'
