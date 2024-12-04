@@ -58,8 +58,7 @@ async function Main() {
     return;
   }
 
-  const players = await LoadPlayersIds(db, _playersTracked)
-  ;
+  const players = await LoadPlayersIds(db, _playersTracked);
   console.log("tracked players", players);
 
   // Add player id to the tracked players
