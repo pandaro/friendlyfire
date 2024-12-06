@@ -25,6 +25,12 @@ export default async function SemiCompetitiveAlgo(
   const gameMode = match.gameMode;
   const nTrackedPlayers = winningTeam.length + loosingTeam.length;
 
+  // If match startTime is lower than last match startTime, return
+  const league = await GetLeagueData(db.league, "league");
+  if (new Date(match.startTime) < new Date(league.lastMatchStartTime)) {
+    return;
+  }
+
   await SetMatchData(db.matches, match, match.id);
 
   // Process winningTeam sequentially
