@@ -47,8 +47,16 @@ async function Main() {
     start: PastDateFormated,
     end: TodayteFormated,
   };
-
-  // console.info("dal " + PastDateFormated + " | " + "al " + TodayteFormated);
+  
+  let StartDate = new Date(config.StartTime);
+  let EndTime = new Date(config.EndTime);//TO DO gestirlo in query
+  console.log("StartDate: " + StartDate.toISOString());
+  console.log("EndTime: " + EndTime.toISOString());
+  //Check valid date
+  if(isNaN(StartDate.getTime()) || isNaN(EndTime.getTime()))
+  {
+    return;
+  }
 
   const players = await LoadPlayersIds(db, _playersTracked);
   console.log("tracked players", players);
@@ -67,7 +75,7 @@ async function Main() {
   console.log("playersMatches found", playersMatches.length);
 
    if(playersMatches.length > 0) {
-    const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), "2024-10-15T00:24:15.000Z");
+    const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), StartDate);
   console.log("matches found", matches.length);
 
   console.log("Start parsing matches...");
