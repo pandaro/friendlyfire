@@ -1,5 +1,6 @@
 # Storage files
 /storage
+/bkp
 
 *.js
 *.js.map
