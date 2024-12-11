@@ -1,5 +1,5 @@
 # Storage files
-/storage
+# Commented because this is a season branch and the storage should be shared /storage
 /bkp
 
 *.js
