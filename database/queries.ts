@@ -27,6 +27,25 @@ export async function LoadPlayersIds(db: Database, trackedPlayers: string[]): Pr
     return players;
 }
 
+export async function LoadPlayers(db: Database, trackedPlayers: string[]): Promise<PlayersMatches> {
+    const parsedPlayers = trackedPlayers.map(player => `'${player}'`).join(',');
+    const query = `
+    SELECT user_id, name
+    FROM 'https://data-marts.beyondallreason.dev/players.parquet'
+    WHERE user_id IN (${parsedPlayers})
+    `;
+    
+    let players: PlayersMatches = {};
+
+    const ps = await db.all(query);
+
+    for (let i = 0; i < ps.length; i++) {
+        players[ps[i].user_id] = {name: ps[i].name};
+      }
+
+    return players;
+}
+
 export async function LoadPlayersInMatch(db: Database, matchId: string): Promise<PlayerMatch[]> {
     const query = `
     SELECT user_id, team_id

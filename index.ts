@@ -10,7 +10,7 @@ import {
   LocalDatabase,
 } from "./src/types/index.js";
 import initDatabase, { initLocalDatabase } from "./database/index";
-import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch } from "./database/queries";
+import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch, LoadPlayers } from "./database/queries";
 import { Database } from "duckdb-async";
 import { GetLeagueData } from "./database/localQueries";
 
@@ -58,13 +58,12 @@ async function Main() {
     return;
   }
 
-  const players = await LoadPlayersIds(db, _playersTracked);
+  const players = await LoadPlayers(db, _playersTracked);
   console.log("tracked players", players);
 
   // Add player id to the tracked players
-  _playersTrackedParsed = _playersTracked.map((player) => {
-    const id = Object.keys(players).find((key) => players[key].name === player);
-    return {id: id, name: player };
+  _playersTrackedParsed = Object.keys(players).map((key) => {
+    return { id: key, name: players[key].name };
   });
 
   // Get league data from db and set the last match id
