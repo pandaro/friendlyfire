@@ -10,8 +10,9 @@ import {
   LocalDatabase,
 } from "./src/types/index.js";
 import initDatabase, { initLocalDatabase } from "./database/index";
-import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch } from "./database/queries";
+import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch, LoadPlayers } from "./database/queries";
 import { Database } from "duckdb-async";
+import { GetLeagueData } from "./database/localQueries";
 
 const scriptParams = process.argv.slice(2);
 
@@ -32,9 +33,9 @@ initDatabase().then((_db) => {
 });
 
 async function Main() {
-  console.log("API used: " + config.api);
+  // console.log("API used: " + config.api);
 
-  console.log(db);
+  // console.log(db);
 
 
   const today = new Date();
@@ -46,27 +47,42 @@ async function Main() {
     start: PastDateFormated,
     end: TodayteFormated,
   };
+  
+  let StartDate = new Date(config.StartTime);
+  let EndTime = new Date(config.EndTime);//TO DO gestirlo in query
+  console.log("StartDate: " + StartDate.toISOString());
+  console.log("EndTime: " + EndTime.toISOString());
+  //Check valid date
+  if(isNaN(StartDate.getTime()) || isNaN(EndTime.getTime()))
+  {
+    return;
+  }
 
-  console.info("dal " + PastDateFormated + " | " + "al " + TodayteFormated);
-
-  const players = await LoadPlayersIds(db, _playersTracked);
+  const players = await LoadPlayers(db, _playersTracked);
   console.log("tracked players", players);
 
   // Add player id to the tracked players
-  _playersTrackedParsed = _playersTracked.map((player) => {
-    const id = Object.keys(players).find((key) => players[key].name === player);
-    return {id: id, name: player };
+  _playersTrackedParsed = Object.keys(players).map((key) => {
+    return { id: key, name: players[key].name };
   });
 
-  const playersMatches = await LoadLeagueMatchIds(db, players);
+  // Get league data from db and set the last match id
+  const league = await GetLeagueData(localDb.league, "league");
+  const lastMatchId = league.lastMatchId ? league.lastMatchId : "0";
+
+  const playersMatches = await LoadLeagueMatchIds(db, players, lastMatchId);
   console.log("playersMatches found", playersMatches.length);
 
-  const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), "2024-10-15T00:24:15.000Z");
+   if(playersMatches.length > 0) {
+    const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), StartDate);
   console.log("matches found", matches.length);
 
   console.log("Start parsing matches...");
   const parsedMatches = await ParseMatches(matches, players, playersMatches);
-  console.log("parsed matches", parsedMatches);
+} else { 
+  console.log("No matches found, nothing to update!");
+}
+  // console.log("parsed matches", parsedMatches);
 }
 
 // Parse matches with the following structure:
