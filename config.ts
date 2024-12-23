@@ -100,6 +100,7 @@ const config: Config = {
     '227107'   //'NGobbux'
   ],
   usedAlgorithm: SemiCompetitiveAlgo,
+  dataRetrivalMethod: "api",
 };
 
 export default config;
@@ -109,4 +110,5 @@ interface Config {
   api: string;
   trackedPlayers: string[];
   usedAlgorithm: Function;
+  dataRetrivalMethod?: 'api' | 'dumpDb';
 }

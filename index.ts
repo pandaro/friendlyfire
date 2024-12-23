@@ -13,6 +13,7 @@ import initDatabase, { initLocalDatabase } from "./database/index";
 import { LoadPlayersIds, LoadLeagueMatchIds, LoadMatches, LoadPlayersInMatch, LoadPlayers } from "./database/queries";
 import { Database } from "duckdb-async";
 import { GetLeagueData } from "./database/localQueries";
+import { GetMatchData, GetPlayerMatchesIds } from "./database/replaysApiQueries";
 
 const scriptParams = process.argv.slice(2);
 
@@ -22,7 +23,7 @@ if(scriptParams.length > 0) {
 }
 
 export var _playersTracked = config.trackedPlayers;
-export var _playersTrackedParsed: {id?: string, name?: string}[] = [];
+export var _playersTrackedParsed: {[key: string]: string} = {};
 let db: Database;
 const localDb: LocalDatabase = initLocalDatabase();
 
@@ -61,27 +62,127 @@ async function Main() {
   const players = await LoadPlayers(db, _playersTracked);
   console.log("tracked players", players);
 
-  // Add player id to the tracked players
-  _playersTrackedParsed = Object.keys(players).map((key) => {
-    return { id: key, name: players[key].name };
+  Object.keys(players).forEach((key) => {
+    _playersTrackedParsed[key] = players[key].name as string;
   });
 
-  // Get league data from db and set the last match id
-  const league = await GetLeagueData(localDb.league, "league");
-  const lastMatchId = league.lastMatchId ? league.lastMatchId : "0";
+  if (config.dataRetrivalMethod === "api") {
+    
+    let playersMatchesReplaysIds: {[key: MatchId]: string[]} = {};
 
-  const playersMatches = await LoadLeagueMatchIds(db, players, lastMatchId);
-  console.log("playersMatches found", playersMatches.length);
+    let _playersNamesT = Object.values(_playersTrackedParsed);
 
-   if(playersMatches.length > 0) {
-    const matches = await LoadMatches(db, playersMatches.map((m) => m.matchId), StartDate);
-  console.log("matches found", matches.length);
+    console.log("tracked players names", _playersNamesT);
 
-  console.log("Start parsing matches...");
-  const parsedMatches = await ParseMatches(matches, players, playersMatches);
-} else { 
-  console.log("No matches found, nothing to update!");
-}
+    for (let i = 0; i < _playersNamesT.length; i++) {
+      if(!_playersNamesT[i]) {
+        console.log("player name not found");
+        continue;
+      }
+
+      const dateRange: QueryDateRange = {
+        start: StartDate.toISOString().split("T")[0],
+        end: EndTime.toISOString().split("T")[0],
+      }; 
+
+      // Set a timeout to not overload the server
+      await new Promise((resolve) => setTimeout(resolve, Math.random() * 1000));
+
+      let _playerMatchesIds = await GetPlayerMatchesIds(
+        _playersNamesT[i] as string,
+        dateRange
+      );
+
+      for (let jj = 0; jj < _playerMatchesIds.length; jj++) {
+        if(playersMatchesReplaysIds[_playerMatchesIds[jj]]) {
+        playersMatchesReplaysIds[_playerMatchesIds[jj]].push(_playersNamesT[i] as string);
+
+        } else {
+          playersMatchesReplaysIds[_playerMatchesIds[jj]] = [_playersNamesT[i] as string];
+        }
+      }  
+    }
+    console.log("playersMatchesReplaysIds found", Object.keys(playersMatchesReplaysIds).length);
+    let playersMatchesReplays = [];
+    for(let i = Object.keys(playersMatchesReplaysIds).length -1; i >= 0; i--) {
+      if(playersMatchesReplaysIds[Object.keys(playersMatchesReplaysIds)[i]].length > 1) {
+        playersMatchesReplays.push(Object.keys(playersMatchesReplaysIds)[i]);
+      }
+    }
+    console.log("playersMatches found", playersMatchesReplays.length);
+
+    if(playersMatchesReplays.length > 0) {
+      // reorder playersMatchesReplays in ascending order
+      playersMatchesReplays = playersMatchesReplays.sort((a, b) => {
+        return parseInt(a) - parseInt(b);
+      });
+
+      console.log("playersMatchesReplays", playersMatchesReplays);
+
+      console.log("Start parsing matches...");
+      let matchesArray = [];
+
+      for(let i = 0; i < playersMatchesReplays.length; i++) {
+        let match = await GetMatchData(playersMatchesReplays[i]);
+        matchesArray.push(match);
+        
+        console.log("fetched match id " + match.id);
+        console.log("- winning team", match.winningTeam);
+        console.log("- losing team", match.loosingTeam);
+
+      }
+
+      // Reorder matches in ascending order by id
+      matchesArray = matchesArray.sort((a, b) => {
+        return parseInt(a.id) - parseInt(b.id);
+      });
+
+      for(let i = 0; i < matchesArray.length; i++) {
+        console.log(`----------------------- ${i+1}/${matchesArray.length} --------------------------`);
+        console.log("parsed match id " + matchesArray[i].id);
+        console.log("- winning team", matchesArray[i].winningTeam);
+        console.log("- losing team", matchesArray[i].loosingTeam);
+        console.log("- start time", matchesArray[i].startTime);
+        console.log("- map", matchesArray[i].map);
+        console.log("- game mode", matchesArray[i].gameMode);
+        console.log(`-------------------------------------------------`);
+
+        config.usedAlgorithm(localDb, matchesArray[i]);
+
+      }
+
+
+      
+    } else {
+      console.log("No matches found, nothing to update!");
+    }
+  } else if (config.dataRetrivalMethod === "dumpDb") {
+
+    // Get league data from db and set the last match id
+    const league = await GetLeagueData(localDb.league, "league");
+    const lastMatchId = league.lastMatchId ? league.lastMatchId : "0";
+
+    const playersMatches = await LoadLeagueMatchIds(db, players, lastMatchId);
+    console.log("playersMatches found", playersMatches.length);
+
+    if (playersMatches.length > 0) {
+      const matches = await LoadMatches(
+        db,
+        playersMatches.map((m) => m.matchId),
+        StartDate
+      );
+      console.log("matches found", matches.length);
+
+      console.log("Start parsing matches...");
+      const parsedMatches = await ParseMatches(
+        matches,
+        players,
+        playersMatches
+      );
+    } else {
+      console.log("No matches found, nothing to update!");
+    }
+  } 
   // console.log("parsed matches", parsedMatches);
 }
 
