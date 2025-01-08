@@ -214,7 +214,7 @@ async function DebugLeaderboard(db: LocalDatabase) {
       const matchesWon = Object.values(playerData.wins).reduce((a, b) => a + b, 0);
       const matchesLost = Object.values(playerData.losses).reduce((a, b) => a + b, 0);
       const matchesPlayed = matchesWon + matchesLost;
-      const playerName = _playersTrackedParsed.find((p) => p.id === l.userId)?.name;
+      const playerName = _playersTrackedParsed[l.userId];
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
       // return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
       return {P: l.points, Name: playerName, matches_win: `${matchesWon}/${matchesPlayed}`};

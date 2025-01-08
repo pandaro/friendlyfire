@@ -1,1 +1,1 @@
-[x] Fix ts module exports
+[] Fetch matches starting from last match date
