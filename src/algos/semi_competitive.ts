@@ -27,7 +27,8 @@ export default async function SemiCompetitiveAlgo(
 
     // If match id is lower than last match id, return
     const league = await GetLeagueData(db.league, "league");
-    if (match.id < league.lastMatchId) {
+    if (match.id <= league.lastMatchId) {
+      console.log(`Match ${match.id} already processed, skipping...`);
       return;
     }
 

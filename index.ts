@@ -43,19 +43,7 @@ initDatabase().then((_db) => {
 });
 
 async function Main() {
-  // console.log("API used: " + config.api);
-
   // console.log(db);
-
-  const today = new Date();
-  const pastDate = new Date();
-  pastDate.setDate(today.getDate() - 30);
-  const PastDateFormated = pastDate.toISOString().split("T")[0];
-  const TodayteFormated = today.toISOString().split("T")[0];
-  const dateRange: QueryDateRange = {
-    start: PastDateFormated,
-    end: TodayteFormated,
-  };
 
   // Build the date range
   let StartDate = new Date(config.StartTime);
@@ -68,7 +56,7 @@ async function Main() {
   }
 
   // Load players from the bar dump database
-  const players = await LoadPlayers(db,  _playersTracked);
+  const players = await LoadPlayers(db, _playersTracked);
   console.log("tracked players", players);
   Object.keys(players).forEach((key) => {
     _playersTrackedParsed[key] = players[key].name as string;
@@ -76,11 +64,29 @@ async function Main() {
 
   // Check if the data retrival method is the api
   if (config.dataRetrivalMethod === "api") {
+    console.log("API used: " + config.api);
+
     let arrayOfPlayerMatchesIds: string[][] = [];
 
     // Get tracked players names
     let _playersNamesT = Object.values(_playersTrackedParsed);
     console.log("tracked players names", _playersNamesT);
+
+    // Format the date range for the query
+    const dateRange: QueryDateRange = {
+      start: StartDate.toISOString().split("T")[0],
+      end: EndTime.toISOString().split("T")[0],
+    };
+
+    // If the local database has a last match date change the dateRange to start from the last match date
+    const league = await GetLeagueData(localDb.league, "league");
+    if (league.lastMatchStartTime) {
+      const formattedLastMatchDate = new Date(league.lastMatchStartTime)
+        .toISOString()
+        .split("T")[0];
+      dateRange.start = formattedLastMatchDate;
+      console.log("dateRange updated with last match date", dateRange.start);
+    }
 
     // Get matches ids for each player
     for (let i = 0; i < _playersNamesT.length; i++) {
@@ -88,12 +94,6 @@ async function Main() {
         console.log("player name not found");
         continue;
       }
-
-      // Format the date range for the query
-      const dateRange: QueryDateRange = {
-        start: StartDate.toISOString().split("T")[0],
-        end: EndTime.toISOString().split("T")[0],
-      };
 
       // Set a timeout to not overload the server
       await new Promise((resolve) => setTimeout(resolve, Math.random() * 1000));
@@ -108,7 +108,6 @@ async function Main() {
 
     let playersMatchesReplaysIds: { [key: MatchId]: string[] } = {};
 
-    
     for (let i = 0; i < arrayOfPlayerMatchesIds.length; i++) {
       const _playerMatchesIds = arrayOfPlayerMatchesIds[i];
       for (let jj = 0; jj < _playerMatchesIds.length; jj++) {
