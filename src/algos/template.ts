@@ -1,5 +1,5 @@
 /* 
-  Semi-Competitive Algorithm
+  template algo + hypostesis
   Version: 0.1
   Author: CanestroAnale
   Description: wip
@@ -12,7 +12,7 @@ import {
   SetMatchData,
   SetPlayerData,
 } from "../../database/localQueries";
-import { LocalDatabase, LocalLeague, Match } from "../types";
+import { LocalDatabase, LocalLeague, LocalPlayer, Match } from "../types";
 
 export default async function template(
   db: LocalDatabase,
@@ -34,15 +34,49 @@ export default async function template(
     return;
   }
   await SetMatchData(db.matches, match, match.id);
-  for (const player of winningTeam) {
 
+  for (const player of winningTeam) {
+    AddWinningPlayerPoints(player,db,map,gameMode,ratioPlayers);
   };//punti per chi vince
   for (const player of loosingTeam) {
+    AddLoosingPlayerPoints(player,db,map,gameMode,ratioPlayers);
 
   };//punti di chi perde
 
   await UpdateLeague(match.id, match.startTime, db);
+  if (debug) await DebugLeaderboard(db);
+}
 
+export default async function biotest(
+  db: LocalDatabase,
+  match: Match,
+  debug = true
+) {
+  const winningTeam = match.winningTeam;
+  const loosingTeam = match.loosingTeam;
+  const map = match.map;
+  const gameMode = match.gameMode;
+  const teamSize = match.teamSize;//TODO:WARNING:dati dalla partita aggiungere un counter per teamsize numero totale di players
+  const nTrackedPlayers = winningTeam.length + loosingTeam.length;
+  const ratioPlayers = nTrackedPlayers / teamSize;
+
+  // If match id is lower than last match id, return
+  const league = await GetLeagueData(db.league, "league");
+  if (match.id <= league.lastMatchId) {
+    console.log(`Match ${match.id} already processed, skipping...`);
+    return;
+  }
+  await SetMatchData(db.matches, match, match.id);
+  for (const player of winningTeam) {
+    AddWinningPlayerPoints(player,db);
+
+  };//punti per chi vince
+  for (const player of loosingTeam) {
+    AddLoosingPlayerPoints(player,db);
+    //perdi punti in base a quante partite fai
+  };//punti di chi perde
+
+  await UpdateLeague(match.id, match.startTime, db);
   if (debug) await DebugLeaderboard(db);
 }
 
@@ -70,7 +104,7 @@ async function UpdateLeague(
 }
 
 
-async function AddGameModePlayerPoints(
+async function GetGameModeBonusMalus(
   //bots,raptors,scavs,duel,smallteams,largeteams,duel,ffa,teamffa
   playerId: string,
   gameMode: string,
@@ -95,13 +129,13 @@ async function AddGameModePlayerPoints(
   await SetPlayerData(db.players, playerData, playerId);
 }
 
-async function AddMapBonusMalus(
-  playerId: string,
+async function GetMapBonusMalus(
+  playerData: LocalPlayer,
+  leagueData: LocalLeague,
   map: string,
   db: LocalDatabase
 ) {
-  const playerData = await GetPlayerData(db.players, playerId);
-  const leagueData = await GetLeagueData(db.league, "league");
+
   if (!playerData.maps[map]) playerData.maps[map][1]0;
   playerData.maps[map] += 1;
   let ratioMap = 0
@@ -111,19 +145,30 @@ async function AddMapBonusMalus(
     maxMap = Math.max(maxMap,playerData.maps[key as keyof typeof playerData.maps]);
   });
   ratioModes =  playerData.maps[map] / maxMap;
-  let points = 0;
-  const playerName = _playersTrackedParsed[playerId];
-  console.log("played map bonus ->" + playerName + "bonus/malus" + ratioMap + " gets " + points);
-  await SetPlayerData(db.players, playerData, playerId);
+  //let points = 0;
+  return ratioModes
+//   const playerName = _playersTrackedParsed[playerId];
+//
+//   console.log("played map bonus ->" + playerName + "bonus/malus" + ratioMap + " gets " + points);
+//   await SetPlayerData(db.players, playerData, playerId);
 }
 
 
 async function AddWinningPlayerPoints(
   playerId: string,
-  db: LocalDatabase
+  db: LocalDatabase,
+  map: string,
+  gameMode: string,
+  ratioPlayers: number,
+
 ) {
   const playerData = await GetPlayerData(db.players, playerId);
   const leagueData = await GetLeagueData(db.league, "league");
+  const mapBonusMalus = GetMapBonusMalus(playerData,leagueData,map,db)
+  const gameModeBonusMalus = GetGameModeBonusMalus(playerData,leagueData,gameMode,db)
+  const playersEncountered = GetPlayersEncounteredBonusMalus(playerData,leagueData,playersEncountered,db)//forse discorso a parte
+  const media
+
   let points = 1;
   playerData.points += points;
   const playerName = _playersTrackedParsed[playerId];
@@ -145,6 +190,8 @@ async function AddLoosingPlayerPoints(//WARNING:discutibile
 }
 
 async function AddTrackedEncounterPoints(
+
+
   db: LocalDatabase,
   playerId: string,
   encounterPlayerId: string,
