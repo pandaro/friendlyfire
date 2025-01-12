@@ -14,7 +14,7 @@ import {
 } from "../../database/localQueries";
 import { LocalDatabase, LocalLeague, Match } from "../types";
 
-export default async function SemiCompetitiveAlgo(
+export default async function template(
   db: LocalDatabase,
   match: Match,
   debug = true
@@ -24,64 +24,22 @@ export default async function SemiCompetitiveAlgo(
   const map = match.map;
   const gameMode = match.gameMode;
   const teamSize = match.teamSize;//TODO:WARNING:dati dalla partita aggiungere un counter per teamsize numero totale di players
-
-
   const nTrackedPlayers = winningTeam.length + loosingTeam.length;
   const ratioPlayers = nTrackedPlayers / teamSize;
 
-
-    // If match id is lower than last match id, return
-    const league = await GetLeagueData(db.league, "league");
-    if (match.id <= league.lastMatchId) {
-      console.log(`Match ${match.id} already processed, skipping...`);
-      return;
-    }
-
+  // If match id is lower than last match id, return
+  const league = await GetLeagueData(db.league, "league");
+  if (match.id <= league.lastMatchId) {
+    console.log(`Match ${match.id} already processed, skipping...`);
+    return;
+  }
   await SetMatchData(db.matches, match, match.id);
-
-  // Process winningTeam sequentially
   for (const player of winningTeam) {
-    if (!await db.players.get(player)) {
-      console.log(`Player ${player} not found in database`);
-      await AddPlayerToDatabase(db, player);
-    }
 
-    await AddWinningPlayerPoints(player, map, db);
-    await AddGameModePlayerPoints(player, gameMode, db)
-
-    // Add points from tracked players encounters in winning team
-    for (const encounterPlayer of winningTeam) {
-      if (encounterPlayer !== player) {
-        await AddTrackedEncounterPoints(db, player, encounterPlayer);
-      }
-    }
-    // Add points from tracked players encounters in loosing team
-    for (const encounterPlayer of loosingTeam) {
-      await AddTrackedEncounterPoints(db, player, encounterPlayer);
-    }
-  }
-
-  // Process loosingTeam sequentially
+  };//punti per chi vince
   for (const player of loosingTeam) {
-    if (!await db.players.get(player)) {
-      console.log(`Player ${player} not found in database`);
-      await AddPlayerToDatabase(db, player);
-   }
 
-
-   await AddLoosingPlayerPoints(player, map, db);
-   await AddGameModePlayerPoints(player, gameMode, db)
-    // Add points from tracked players encounters in loosing team
-    for (const encounterPlayer of loosingTeam) {
-      if (encounterPlayer !== player) {
-        await AddTrackedEncounterPoints(db, player, encounterPlayer);
-      }
-    }
-    // Add points from tracked players encounters in loosing team
-    for (const encounterPlayer of winningTeam) {
-      await AddTrackedEncounterPoints(db, player, encounterPlayer);
-    }
-  }
+  };//punti di chi perde
 
   await UpdateLeague(match.id, match.startTime, db);
 
