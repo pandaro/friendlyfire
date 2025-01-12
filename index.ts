@@ -246,7 +246,7 @@ async function ParseMatches(
         db,
         m.match_id
       );
-
+      let _teamSize = 0;
       matchPlayers.forEach((mp, i) => {
         const winningTeamID: string = m.winning_team as string;
         const playerTeamId: string = mp.teamId as string;
@@ -254,7 +254,9 @@ async function ParseMatches(
         if (_trackedPlayers[mp.userId]) {
           // Add player to the winning or losing team
           if (playerTeamId === winningTeamID) {
+            _teamSize ++ ;
             _winningTeam[mp.userId] = {
+
               teamId: mp.teamId,
               name: _trackedPlayers[mp.userId]?.name,
             };
@@ -296,6 +298,7 @@ async function ParseMatches(
         startTime: m.start_time,
         map: m.map,
         gameMode: m.game_type,
+        teamSize: _teamSize,
       };
 
       await config.usedAlgorithm(localDb, match);
