@@ -25,11 +25,19 @@ export default async function SemiCompetitiveAlgo(
   const gameMode = match.gameMode;
   const nTrackedPlayers = winningTeam.length + loosingTeam.length;
 
+    // If match id is lower than last match id, return
+    const league = await GetLeagueData(db.league, "league");
+    if (match.id <= league.lastMatchId) {
+      console.log(`Match ${match.id} already processed, skipping...`);
+      return;
+    }
+
   await SetMatchData(db.matches, match, match.id);
 
   // Process winningTeam sequentially
   for (const player of winningTeam) {
     if (!await db.players.get(player)) {
+      console.log(`Player ${player} not found in database`);
       await AddPlayerToDatabase(db, player);
     }
 
@@ -121,7 +129,7 @@ async function AddGameModePlayerPoints(
   playerData.points += points;
 
 
-  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  const playerName = _playersTrackedParsed[playerId];
   console.log("Game mode ->" + playerName + " gets " + Math.round(points));
 
 
@@ -144,7 +152,7 @@ async function AddWinningPlayerPoints(
   playerData.points += Math.round(points);
 
 
-  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  const playerName = _playersTrackedParsed[playerId];
   console.log("winning ->" + playerName + " gets " + Math.round(points));
 
   await SetPlayerData(db.players, playerData, playerId);
@@ -166,7 +174,7 @@ async function AddLoosingPlayerPoints(
   points = Math.min(Math.round(points), 19);
   playerData.points -= points;
 
-  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  const playerName = _playersTrackedParsed[playerId];
   console.log("loosing ->" + playerName + " looses " + Math.round(points));
 
   await SetPlayerData(db.players, playerData, playerId);
@@ -198,7 +206,7 @@ async function AddTrackedEncounterPoints(
   playerData.points += 5;
 
 
-  const playerName = _playersTrackedParsed.find((p) => p.id === playerId)?.name;
+  const playerName = _playersTrackedParsed[playerId];
   console.log("players ->" + playerName + " gets " + 5 + " + " + Math.round(points));
 
 
@@ -208,7 +216,7 @@ async function AddTrackedEncounterPoints(
 }
 
 async function AddPlayerToDatabase(db: LocalDatabase, playerId: string) {
-  console.log(`Adding ${playerId} to database`);
+  console.log(`Adding ${playerId} - ${_playersTrackedParsed[playerId]} to database`);
   const _p = { points: 0, maps: {}, teamMates: {}, wins: {}, losses: {}, mode:{} };
   await SetPlayerData(db.players, _p, playerId);
 
@@ -225,7 +233,7 @@ async function DebugLeaderboard(db: LocalDatabase) {
       const matchesWon = Object.values(playerData.wins).reduce((a, b) => a + b, 0);
       const matchesLost = Object.values(playerData.losses).reduce((a, b) => a + b, 0);
       const matchesPlayed = matchesWon + matchesLost;
-      const playerName = _playersTrackedParsed.find((p) => p.id === l.userId)?.name;
+      const playerName = _playersTrackedParsed[l.userId];
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
       // return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
       return {P: l.points, Name: playerName, matches_win: `${matchesWon}/${matchesPlayed}`};
