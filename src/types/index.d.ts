@@ -8,6 +8,7 @@ export interface Match {
   id: MatchId;
   loosingTeam: string[];
   winningTeam: string[];
+  teamSize: number;
   startTime: string;
   map: string;
   gameMode: string;
@@ -40,7 +41,8 @@ export interface LocalDatabase {
 
 export interface LocalPlayer {
   points: number;
-  wins: { [key: string]: number };
+  wins: { [key: string]: number }; // TODO: da togliere
+  maps: { [key:string]:number[]}
   losses: { [key: string]: number };
   teamMates: { [key: string]: number };
   mode: { [key: string]: number };
