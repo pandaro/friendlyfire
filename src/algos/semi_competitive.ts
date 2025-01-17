@@ -217,7 +217,7 @@ async function AddTrackedEncounterPoints(
 
 async function AddPlayerToDatabase(db: LocalDatabase, playerId: string) {
   console.log(`Adding ${playerId} - ${_playersTrackedParsed[playerId]} to database`);
-  const _p = { points: 0, maps: {}, teamMates: {}, wins: {}, losses: {}, mode:{} };
+  const _p = { points: 0, maps: {}, teamMates: {}, encounters: {}, wins: {}, losses: {}, mode:{} };
   await SetPlayerData(db.players, _p, playerId);
 
   await AddPlayerToLeaderboard(playerId, db);

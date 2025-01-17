@@ -9,7 +9,7 @@ import {
   PlayerMatch,
   LocalDatabase,
 } from "./src/types/index.js";
-import initDatabase, { initLocalDatabase } from "./database/index";
+import initDatabase, { AddPlayerToDatabase, initLocalDatabase } from "./database/index";
 import {
   LoadPlayersIds,
   LoadLeagueMatchIds,
@@ -33,17 +33,16 @@ if (scriptParams.length > 0) {
 
 export var _playersTracked = config.trackedPlayers;
 export var _playersTrackedParsed: { [key: string]: string } = {};
-let db: Database;
+let dumpDb: Database;
 const localDb: LocalDatabase = initLocalDatabase();
 
 initDatabase().then((_db) => {
-  db = _db;
+  dumpDb = _db;
 
   Main();
 });
 
 async function Main() {
-  // console.log(db);
 
   // Build the date range
   let StartDate = new Date(config.StartTime);
@@ -56,14 +55,19 @@ async function Main() {
   }
 
   // Load players from the bar dump database
-  const players = await LoadPlayers(db, _playersTracked);
+  const players = await LoadPlayers(dumpDb, _playersTracked);
   console.log("tracked players", players);
-  Object.keys(players).forEach((key) => {
-    _playersTrackedParsed[key] = players[key].name as string;
-  });
 
-  // Check if the data retrival method is the api
-  if (config.dataRetrivalMethod === "api") {
+  for (const key of Object.keys(players)) {
+    _playersTrackedParsed[key] = players[key].name as string;
+    if (!await localDb.players.get(key)) {
+      console.log(`Player ${key} not found in database`);
+      await AddPlayerToDatabase(localDb, key);
+    }
+  }
+
+  // Check if the data retrieval method is the api
+  if (config.dataRetrievalMethod === "api") {
     console.log("API used: " + config.api);
 
     let arrayOfPlayerMatchesIds: string[][] = [];
@@ -186,17 +190,17 @@ async function Main() {
     } else {
       console.log("No matches found, nothing to update!");
     }
-  } else if (config.dataRetrivalMethod === "dumpDb") {
+  } else if (config.dataRetrievalMethod === "dumpDb") {
     // Get league data from db and set the last match id
     const league = await GetLeagueData(localDb.league, "league");
     const lastMatchId = league.lastMatchId ? league.lastMatchId : "0";
 
-    const playersMatches = await LoadLeagueMatchIds(db, players, lastMatchId);
+    const playersMatches = await LoadLeagueMatchIds(dumpDb, players, lastMatchId);
     console.log("playersMatches found", playersMatches.length);
 
     if (playersMatches.length > 0) {
       const matches = await LoadMatches(
-        db,
+        dumpDb,
         playersMatches.map((m) => m.matchId),
         StartDate
       );
@@ -211,19 +215,9 @@ async function Main() {
     } else {
       console.log("No matches found, nothing to update!");
     }
-  }
-  // console.log("parsed matches", parsedMatches);
+  } 
 }
 
-// Parse matches with the following structure:
-// {
-//   match_id: string;
-//   start_time: string;
-//   winning_team: string[]; // player ids
-//   losing_team: string[]; // player ids
-//   map: string;
-// }
-//
 // Return an array of Match objects
 async function ParseMatches(
   matches: DbMatch[],
@@ -243,7 +237,7 @@ async function ParseMatches(
 
       const trackedPlayers: string[] = [];
       const matchPlayers: PlayerMatch[] = await LoadPlayersInMatch(
-        db,
+        dumpDb,
         m.match_id
       );
       
