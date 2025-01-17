@@ -59,8 +59,14 @@ async function Main() {
   const players = await LoadPlayers(db, _playersTracked);
   console.log("tracked players", players);
   Object.keys(players).forEach((key) => {
+    if (!await db.players.get(key)) {
+      console.log(`Player ${key} not found in database`);
+      await AddPlayerToDatabase(db, key);
+    }
     _playersTrackedParsed[key] = players[key].name as string;
   });
+
+
 
   // Check if the data retrival method is the api
   if (config.dataRetrivalMethod === "api") {
