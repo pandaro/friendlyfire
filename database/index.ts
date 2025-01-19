@@ -23,16 +23,16 @@ export function initLocalDatabase(): LocalDatabase {
 
 export async function AddPlayerToDatabase(db: LocalDatabase, playerId: string) {
   console.log(`Adding ${playerId} - ${_playersTrackedParsed[playerId]} to database`);
-  const _p = { points: 0, maps: {}, teamMates: {}, wins: {}, losses: {}, mode:{}, encounters:{} };
+  const _p = { points: 1000, maps: {}, teamMates: {}, wins: {}, losses: {}, mode:{}, encounters:{} };
   await SetPlayerData(db.players, _p, playerId);
 
-  await AddPlayerToLeaderboard(playerId, db);
+  await AddPlayerToLeaderboard(playerId, _p.points, db);
 }
 
-async function AddPlayerToLeaderboard(playerId: string, db: LocalDatabase) {
+async function AddPlayerToLeaderboard(playerId: string, p: number, db: LocalDatabase) {
   console.log(`Adding ${playerId} - ${_playersTrackedParsed[playerId]} to leaderboard`);
   const league = await GetLeagueData(db.league, "league");
-  league.leaderboard.push({ userId: playerId, points: 0 });
+  league.leaderboard.push({ userId: playerId, points: p });
 
   await SetLeagueData(db.league, league, "league");
 }
