@@ -110,17 +110,18 @@ async function ProcessPlayerPoints(
   playerData.mode[gameMode] += 1;
   const gameModeBonusMalus = GetGameModeBonusMalus(playerData,gameMode);
 
-  // // Players encountered related
-  // for(const encounterPlayer of opposingTeam){
-  //   if(!playerData.encounters[encounterPlayer]) playerData.encounters[encounterPlayer] = 0; 
-  //   playerData.encounters[encounterPlayer] ++;
-  // }
-  // const encountersBonusMalus = GetPlayersEncounteredBonusMalus(playerData, opposingTeam)//forse discorso a parte
-
-  // console.log(encountersBonusMalus, gameModeBonusMalus, mapBonusMalus);
+  // Players encountered related
+  for(const encounterPlayer of opposingTeam){
+    if(!playerData.encounters[encounterPlayer]) playerData.encounters[encounterPlayer] = 0; 
+    playerData.encounters[encounterPlayer] ++;
+  }
+  let encountersBonusMalusAverage = 0;
+  for(const opposingPlayer of opposingTeam){
+    encountersBonusMalusAverage = (GetPlayersEncounteredBonusMalus(playerData, opposingPlayer) + encountersBonusMalusAverage) / 2; 
+  }
 
   // Bonus malus average
-  const bonusMalus = Math.max(0.7, (mapBonusMalus + gameModeBonusMalus) / 2);
+  const bonusMalus = Math.max(0.7, (mapBonusMalus + gameModeBonusMalus + encountersBonusMalusAverage) / 3);
   points = points * bonusMalus;
 
   // Win probability
@@ -169,31 +170,21 @@ function GetGameModeBonusMalus(
   return 1 - ratioModes;
 }
 
-// function GetPlayersEncounteredBonusMalus(playerData: LocalPlayer, opposingTeam: string[]) {
-//   let encSum = 0
-//   for(const encounterPlayer of opposingTeam){
-//     encSum += playerData.encounters[encounterPlayer];
-//   }
-//   const encAvg = encSum / opposingTeam.length; 
+function GetPlayersEncounteredBonusMalus(playerData: LocalPlayer, opposingPlayer: string) {
+  let ratioEncounters = 0
+  let maxEncounter = 0
 
-//   console.log("avg patata", encAvg);
+  const keys = Object.keys(playerData.encounters);
+    keys.forEach((key) => {
+      maxEncounter = Math.max(maxEncounter,playerData.encounters[key as keyof typeof playerData.encounters]);
+    });
 
-//   let ratioEncounters = 0
-//   let maxEncounter = 0
+  ratioEncounters =  playerData.encounters[opposingPlayer] / maxEncounter;
 
-//   const keys = Object.keys(playerData.encounters);
-//   for(const encounterPlayer of opposingTeam){
-//     keys.forEach((key) => {
-//       maxEncounter = Math.max(maxEncounter,playerData.encounters[key as keyof typeof playerData.encounters]);
-//     });
-//   }
+  console.log("ratio patata", ratioEncounters);
 
-//   ratioEncounters =  encAvg / maxEncounter;
-
-//   console.log("ratio patata", ratioEncounters);
-
-//   return 1 - ratioEncounters;
-// }
+  return 1 - ratioEncounters;
+}
 
 async function DebugLeaderboard(db: LocalDatabase) {
   const league = await GetLeagueData(db.league, "league");
