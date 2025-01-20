@@ -45,6 +45,7 @@ export async function GetMatchData(matchId: MatchId): Promise<Match> {
         id: matchId,
         loosingTeam: [],
         winningTeam: [],
+        teamSize: 0,
         startTime: "",
         map: "",
         gameMode: ""
@@ -87,6 +88,7 @@ export async function GetMatchData(matchId: MatchId): Promise<Match> {
         matchData.startTime = response.data.startTime;
         matchData.map = response.data.hostSettings.mapname;
         matchData.gameMode = response.data.preset;
+        matchData.teamSize = teams[0].Players.length;
 
         console.log(matchData)
     } catch (error) {
