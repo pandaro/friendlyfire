@@ -184,11 +184,11 @@ async function Main() {
           } --------------------------`
         );
         console.log("parsed match id " + matchesArray[i].id);
-        console.log("- winning team", matchesArray[i].winningTeam);
-        console.log("- losing team", matchesArray[i].loosingTeam);
+        // console.log("- winning team", matchesArray[i].winningTeam);
+        // console.log("- losing team", matchesArray[i].loosingTeam);
         console.log("- start time", matchesArray[i].startTime);
-        console.log("- map", matchesArray[i].map);
-        console.log("- game mode", matchesArray[i].gameMode);
+        // console.log("- map", matchesArray[i].map);
+        // console.log("- game mode", matchesArray[i].gameMode);
         console.log(`-------------------------------------------------`);
 
         await config.usedAlgorithm(localDb, matchesArray[i]);

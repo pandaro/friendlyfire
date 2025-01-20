@@ -37,7 +37,7 @@ export default async function Simple(
 
   const winningTeamAverageRank = await GetAverageTeamRank(winningTeam, db);
   const loosingTeamAverageRank = await GetAverageTeamRank(loosingTeam, db);
-
+  console.log('map:',map,', mode:',gameMode,', %friendlyfire:',ratioPlayers,', names and average rank of the 2 teams');
 
   for (const player of winningTeam) {
     ProcessPlayerPoints(true, player, loosingTeam, db,map,gameMode,ratioPlayers, winningTeamAverageRank, loosingTeamAverageRank);
@@ -90,7 +90,7 @@ async function ProcessPlayerPoints(
   const leagueData = await GetLeagueData(db.league, "league");
 
   const totalPlayedMatches = Object.values(playerData.mode).reduce((a, b) => a + b, 0);
-  
+  const scale = 200;
   let points = 0;
   if(totalPlayedMatches < 20) {
     points = 100;
@@ -116,25 +116,34 @@ async function ProcessPlayerPoints(
     playerData.encounters[encounterPlayer] ++;
   }
   let encountersBonusMalusAverage = 0;
+  let encounterCounter = 0;
   for(const opposingPlayer of opposingTeam){
-    encountersBonusMalusAverage = (GetPlayersEncounteredBonusMalus(playerData, opposingPlayer) + encountersBonusMalusAverage) / 2; 
+    encountersBonusMalusAverage += GetPlayersEncounteredBonusMalus(playerData, opposingPlayer) ;
+    encounterCounter += 1;
   }
+  encountersBonusMalusAverage = encountersBonusMalusAverage / encounterCounter;
 
   // Bonus malus average
   const bonusMalus = Math.max(0.7, (mapBonusMalus + gameModeBonusMalus + encountersBonusMalusAverage) / 3);
+  let basePoints = points;
   points = points * bonusMalus;
 
+
+  console.log('NOME DEL GIOCATORE? base points:',basePoints,', encounters:',encountersBonusMalusAverage,', map:',mapBonusMalus,', mode:',gameModeBonusMalus,'bonusMalus:',bonusMalus,', POINTS:',points)
   // Win probability
-  const winProb = 1 / (1 + Math.pow(10, (teamAverageRank - opposingTeamAverageRank) / 200));
-  console.log("li cannuoli", points, winProb, teamAverageRank, opposingTeamAverageRank);
+  const winProb = 1 / (1 + Math.pow(10, (teamAverageRank - opposingTeamAverageRank) / scale));
+  //console.log("li cannuoli", points, winProb, teamAverageRank, opposingTeamAverageRank);
 
   if(winning) {
     playerData.points += (points * (1 - winProb)) * ratioPlayers;
     playerData.won += 1;
+    console.log('player:',playerData.name, ', WINS:' ,playerData.won, ', scale:' ,scale ,', %win:',winProb,', oldPoints:', points, ', scaledPoints:', (points * (1 - winProb)),', adjust per ratio of players:', (points * (1 - winProb)) * ratioPlayers,', newRank:',playerData.points)
   } else {
     playerData.points -= (points * winProb) * ratioPlayers;
     playerData.lost += 1;
+    console.log('player:',playerData.name, ', LOOSES:', playerData.lost ,', scale:' ,scale ,', %win:',winProb,', oldPoints:', points, ', scaledPoints:',(points * winProb), ', adjust per ratio of players:', (points * winProb)* ratioPlayers ,', newRank:',playerData.points)
   }
+
 
   const playerName = _playersTrackedParsed[playerId];
   await SetPlayerData(db.players, playerData, playerId);
@@ -183,7 +192,7 @@ function GetPlayersEncounteredBonusMalus(playerData: LocalPlayer, opposingPlayer
 
   ratioEncounters =  playerData.encounters[opposingPlayer] / maxEncounter;
 
-  console.log("ratio patata", ratioEncounters);
+  //console.log("ratio patata", ratioEncounters);
 
   return 1 - ratioEncounters;
 }
@@ -217,7 +226,7 @@ async function GetAverageTeamRank(team: string[], db: LocalDatabase) {
     sum += playerData.points;
   }
 
-  console.log("la patata", sum, team.length);
+  //console.log("la patata", sum, team.length);
 
   return sum / team.length;
 }
