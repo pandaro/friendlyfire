@@ -9,7 +9,10 @@ import {
   PlayerMatch,
   LocalDatabase,
 } from "./src/types/index.js";
-import initDatabase, { AddPlayerToDatabase, initLocalDatabase } from "./database/index";
+import initDatabase, {
+  AddPlayerToDatabase,
+  initLocalDatabase,
+} from "./database/index";
 import {
   LoadPlayersIds,
   LoadLeagueMatchIds,
@@ -23,6 +26,10 @@ import {
   GetMatchData,
   GetPlayerMatchesIds,
 } from "./database/replaysApiQueries";
+import initDiscordBot from "./discord";
+const dotenv = require("dotenv");
+
+dotenv.config();
 
 const scriptParams = process.argv.slice(2);
 
@@ -43,7 +50,6 @@ initDatabase().then((_db) => {
 });
 
 async function Main() {
-
   // Build the date range
   let StartDate = new Date(config.StartTime);
   let EndTime = new Date(config.EndTime); //TO DO gestirlo in query
@@ -60,9 +66,9 @@ async function Main() {
 
   for (const key of Object.keys(players)) {
     _playersTrackedParsed[key] = players[key].name as string;
-    if (!await localDb.players.get(key)) {
+    if (!(await localDb.players.get(key))) {
       console.log(`Player ${key} not found in database`);
-      await AddPlayerToDatabase(localDb, key);
+      await AddPlayerToDatabase(localDb, key, players[key].name as string);
     }
   }
 
@@ -195,7 +201,11 @@ async function Main() {
     const league = await GetLeagueData(localDb.league, "league");
     const lastMatchId = league.lastMatchId ? league.lastMatchId : "0";
 
-    const playersMatches = await LoadLeagueMatchIds(dumpDb, players, lastMatchId);
+    const playersMatches = await LoadLeagueMatchIds(
+      dumpDb,
+      players,
+      lastMatchId
+    );
     console.log("playersMatches found", playersMatches.length);
 
     if (playersMatches.length > 0) {
@@ -215,7 +225,12 @@ async function Main() {
     } else {
       console.log("No matches found, nothing to update!");
     }
-  } 
+  }
+
+  if (process.env.RUN_DS_BOT === "1") {
+    // Initialize discord bot
+    initDiscordBot(localDb);
+  }
 }
 
 // Return an array of Match objects
@@ -240,7 +255,7 @@ async function ParseMatches(
         dumpDb,
         m.match_id
       );
-      
+
       let _teamSize = 0;
       matchPlayers.forEach((mp, i) => {
         const winningTeamID: string = m.winning_team as string;
@@ -249,7 +264,7 @@ async function ParseMatches(
         if (_trackedPlayers[mp.userId]) {
           // Add player to the winning or losing team
           if (playerTeamId === winningTeamID) {
-            _teamSize ++ ;
+            _teamSize++;
 
             _winningTeam[mp.userId] = {
               teamId: mp.teamId,

@@ -130,8 +130,10 @@ async function ProcessPlayerPoints(
 
   if(winning) {
     playerData.points += (points * (1 - winProb)) * ratioPlayers;
+    playerData.won += 1;
   } else {
     playerData.points -= (points * winProb) * ratioPlayers;
+    playerData.lost += 1;
   }
 
   const playerName = _playersTrackedParsed[playerId];
@@ -193,8 +195,8 @@ async function DebugLeaderboard(db: LocalDatabase) {
   const leaderboard = await Promise.all(
     league.leaderboard.map(async (l) => {
       const playerData = await GetPlayerData(db.players, l.userId);
-      const matchesWon = Object.values(playerData.wins).reduce((a, b) => a + b, 0);
-      const matchesLost = Object.values(playerData.losses).reduce((a, b) => a + b, 0);
+      const matchesWon = playerData.won;
+      const matchesLost = playerData.lost;
       const matchesPlayed = matchesWon + matchesLost;
       const playerName = _playersTrackedParsed[l.userId];
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};

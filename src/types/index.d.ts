@@ -40,7 +40,10 @@ export interface LocalDatabase extends Database {
 }
 
 export interface LocalPlayer {
+  name: string;
   points: number;
+  won: number;
+  lost: number;
   wins: { [key: string]: number }; // TODO: da togliere
   maps: { [key:string]:number}
   losses: { [key: string]: number };
