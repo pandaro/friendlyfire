@@ -96,7 +96,7 @@ const config: Config = {
     // 85699,   //'3ss3'
     // 295189,  //'spaam'
     // 147330,  //'prese_3'
-    65528,   //'Alempsio'
+    62528,   //'Alempsio'
     // 198167,   //'Blackskull93'
     // 198171,   //'Castoro'
     // 227107   //'NGobbux'

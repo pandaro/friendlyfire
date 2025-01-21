@@ -29,22 +29,69 @@ export default async function Simple(
 
   // If match id is lower than last match id, return
   const league = await GetLeagueData(db.league, "league");
-  if (match.id <= league.lastMatchId || winningTeam.length === 0 || loosingTeam.length === 0) {
+  if (
+    match.id <= league.lastMatchId
+  ) {
     console.log(`Match ${match.id} already processed, skipping...`);
     return;
   }
+  if(
+    winningTeam.length === 0 ||
+    loosingTeam.length === 0) {
+      console.log(`Match ${match.id} has no opposing team, skipping...`);
+      return;
+    }
   await SetMatchData(db.matches, match, match.id);
 
   const winningTeamAverageRank = await GetAverageTeamRank(winningTeam, db);
   const loosingTeamAverageRank = await GetAverageTeamRank(loosingTeam, db);
-  console.log('map:',map,', mode:',gameMode,', %friendlyfire:',ratioPlayers,', names and average rank of the 2 teams');
+
+  // Parse winning and loosing team for debuging purposes
+  const winningTeamParsed = winningTeam.map((player) => {
+    return _playersTrackedParsed[player];
+  });
+  const loosingTeamParsed = loosingTeam.map((player) => {
+    return _playersTrackedParsed[player];
+  });
+  console.log(`- winning team (avg rank ${Math.round(winningTeamAverageRank)})`, winningTeamParsed);
+  console.log(`- losing team (avg rank ${Math.round(loosingTeamAverageRank)})`, loosingTeamParsed);
+  console.log(
+    "map:",
+    map,
+    ", mode:",
+    gameMode,
+    ", %friendlyfire:",
+    ratioPlayers,
+  );
 
   for (const player of winningTeam) {
-    ProcessPlayerPoints(true, player, loosingTeam, db,map,gameMode,ratioPlayers, winningTeamAverageRank, loosingTeamAverageRank);
-  };//punti per chi vince
+    await ProcessPlayerPoints(
+      true,
+      player,
+      loosingTeam,
+      db,
+      map,
+      gameMode,
+      ratioPlayers,
+      winningTeamAverageRank,
+      loosingTeamAverageRank,
+      teamSize
+    );
+  } //punti per chi vince
   for (const player of loosingTeam) {
-    ProcessPlayerPoints(false, player, winningTeam, db,map,gameMode,ratioPlayers, loosingTeamAverageRank, winningTeamAverageRank);
-  };//punti di chi perde
+    await ProcessPlayerPoints(
+      false,
+      player,
+      winningTeam,
+      db,
+      map,
+      gameMode,
+      ratioPlayers,
+      loosingTeamAverageRank,
+      winningTeamAverageRank,
+      teamSize
+    );
+  } //punti di chi perde
 
   await UpdateLeague(match.id, match.startTime, db);
   if (debug) await DebugLeaderboard(db);
@@ -56,23 +103,22 @@ async function UpdateLeague(
   db: LocalDatabase
 ) {
   let league: LocalLeague = await GetLeagueData(db.league, "league");
-  
+
   league.lastMatchId = matchId;
   league.lastMatchStartTime = matchStartTime;
   const leaderboard: { userId: string; points: number }[] = league.leaderboard;
 
   for (let i = 0; i < leaderboard.length; i++) {
     const pd = await GetPlayerData(db.players, leaderboard[i].userId);
-    leaderboard[i].points = pd.points;
+    leaderboard[i].points = pd.points - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
   }
-  
+
   leaderboard.sort((a, b) => {
     return b.points - a.points;
   });
-  
+
   await SetLeagueData(db.league, league, "league");
 }
-
 
 async function ProcessPlayerPoints(
   winning: boolean,
@@ -83,19 +129,21 @@ async function ProcessPlayerPoints(
   gameMode: string,
   ratioPlayers: number,
   teamAverageRank: number,
-  opposingTeamAverageRank: number
+  opposingTeamAverageRank: number,
+  teamSize: number
 ) {
   // Get player data and league data from database
   const playerData = await GetPlayerData(db.players, playerId);
-  const leagueData = await GetLeagueData(db.league, "league");
 
-  const totalPlayedMatches = Object.values(playerData.mode).reduce((a, b) => a + b, 0);
-  const scale = 200;
+  const startingPoints = playerData.points;
+
+  const totalPlayedMatches = playerData.won + playerData.lost;
+  const scale = 1400;
   let points = 0;
-  if(totalPlayedMatches < 20) {
-    points = 100;
-  } else if(totalPlayedMatches < 50) {
-    points = 75;
+  if (totalPlayedMatches < 20) {
+    points = 80;
+  } else if (totalPlayedMatches < 50) {
+    points = 65;
   } else {
     points = 50;
   }
@@ -103,63 +151,108 @@ async function ProcessPlayerPoints(
   // Map related
   if (!playerData.maps[map]) playerData.maps[map] = 0;
   playerData.maps[map] += 1;
-  const mapBonusMalus = GetMapBonusMalus(playerData,map);
+  const mapBonusMalus = GetMapBonusMalus(playerData, map);
 
   // Game mode related
   if (!playerData.mode[gameMode]) playerData.mode[gameMode] = 0;
   playerData.mode[gameMode] += 1;
-  const gameModeBonusMalus = GetGameModeBonusMalus(playerData,gameMode);
+  const gameModeBonusMalus = GetGameModeBonusMalus(playerData, gameMode);
 
   // Players encountered related
-  for(const encounterPlayer of opposingTeam){
-    if(!playerData.encounters[encounterPlayer]) playerData.encounters[encounterPlayer] = 0; 
-    playerData.encounters[encounterPlayer] ++;
+  for (const encounterPlayer of opposingTeam) {
+    if (!playerData.encounters[encounterPlayer])
+      playerData.encounters[encounterPlayer] = 0;
+    playerData.encounters[encounterPlayer]++;
   }
   let encountersBonusMalusAverage = 0;
   let encounterCounter = 0;
-  for(const opposingPlayer of opposingTeam){
-    encountersBonusMalusAverage += GetPlayersEncounteredBonusMalus(playerData, opposingPlayer) ;
+  for (const opposingPlayer of opposingTeam) {
+    encountersBonusMalusAverage += GetPlayersEncounteredBonusMalus(
+      playerData,
+      opposingPlayer
+    );
     encounterCounter += 1;
   }
   encountersBonusMalusAverage = encountersBonusMalusAverage / encounterCounter;
 
   // Bonus malus average
-  const bonusMalus = Math.max(0.7, (mapBonusMalus + gameModeBonusMalus + encountersBonusMalusAverage) / 3);
+  const bonusMalus = Math.max(
+    1,
+    (mapBonusMalus + gameModeBonusMalus + encountersBonusMalusAverage) / 3
+  );
   let basePoints = points;
   points = points * bonusMalus;
 
-
-  console.log('NOME DEL GIOCATORE? base points:',basePoints,', encounters:',encountersBonusMalusAverage,', map:',mapBonusMalus,', mode:',gameModeBonusMalus,'bonusMalus:',bonusMalus,', POINTS:',points)
+  console.log(
+    `${playerData.name} base points:`,
+    basePoints,
+    ", encounters:",
+    encountersBonusMalusAverage.toFixed(2),
+    ", map:",
+    mapBonusMalus,
+    ", mode:",
+    gameModeBonusMalus,
+    "bonusMalus:",
+    bonusMalus,
+    ", POINTS:",
+    points
+  );
   // Win probability
-  const winProb = 1 / (1 + Math.pow(10, (teamAverageRank - opposingTeamAverageRank) / scale));
-  //console.log("li cannuoli", points, winProb, teamAverageRank, opposingTeamAverageRank);
+  const winProb =
+    1 / (1 + Math.pow(10, ( opposingTeamAverageRank - teamAverageRank) / (scale * (1- ratioPlayers) * (teamSize / 8))));
 
-  if(winning) {
-    playerData.points += (points * (1 - winProb)) * ratioPlayers;
+  if (winning) {
+    playerData.points += points * (1 - winProb) * ratioPlayers;
     playerData.won += 1;
-    console.log('player:',playerData.name, ', WINS:' ,playerData.won, ', scale:' ,scale ,', %win:',winProb,', oldPoints:', points, ', scaledPoints:', (points * (1 - winProb)),', adjust per ratio of players:', (points * (1 - winProb)) * ratioPlayers,', newRank:',playerData.points)
+    console.log(
+      "[WON] player:",
+      playerData.name,
+      ", scale:",
+      (scale * (1- ratioPlayers) * (teamSize / 8)).toFixed(2),
+      ", %win:",
+      winProb.toFixed(2),
+      ", oldPoints:",
+      points,
+      ", scaledPoints:",
+      (points * (1 - winProb)).toFixed(2),
+      ", adjust per ratio of players:",
+      (points * (1 - winProb) * ratioPlayers).toFixed(2),
+      `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
+    );
   } else {
-    playerData.points -= (points * winProb) * ratioPlayers;
+    playerData.points -= points * winProb * ratioPlayers;
     playerData.lost += 1;
-    console.log('player:',playerData.name, ', LOOSES:', playerData.lost ,', scale:' ,scale ,', %win:',winProb,', oldPoints:', points, ', scaledPoints:',(points * winProb), ', adjust per ratio of players:', (points * winProb)* ratioPlayers ,', newRank:',playerData.points)
+    console.log(
+      "[LOST] player:",
+      playerData.name,
+      ", scale:",
+      (scale * (1- ratioPlayers) * (teamSize / 8)).toFixed(2),
+      ", %win:",
+      winProb.toFixed(2),
+      ", oldPoints:",
+      points,
+      ", scaledPoints:",
+      (points * winProb).toFixed(2),
+      ", adjust per ratio of players:",
+      (points * winProb * ratioPlayers).toFixed(2),
+      `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
+    );
   }
 
-
-  const playerName = _playersTrackedParsed[playerId];
   await SetPlayerData(db.players, playerData, playerId);
 }
 
-function GetMapBonusMalus(
-  playerData: LocalPlayer,
-  map: string,
-) {
-  let ratioMap = 0
-  let maxMap = 0
+function GetMapBonusMalus(playerData: LocalPlayer, map: string) {
+  let ratioMap = 0;
+  let maxMap = 0;
   const keys = Object.keys(playerData.maps);
   keys.forEach((key) => {
-    maxMap = Math.max(maxMap,playerData.maps[key as keyof typeof playerData.maps]);
+    maxMap = Math.max(
+      maxMap,
+      playerData.maps[key as keyof typeof playerData.maps]
+    );
   });
-  ratioMap =  playerData.maps[map] / maxMap;
+  ratioMap = playerData.maps[map] / maxMap;
 
   return 1 - ratioMap;
 }
@@ -167,32 +260,39 @@ function GetMapBonusMalus(
 function GetGameModeBonusMalus(
   //bots,raptors,scavs,duel,smallteams,largeteams,duel,ffa,teamffa
   playerData: LocalPlayer,
-  gameMode: string,
+  gameMode: string
 ) {
-  let ratioModes = 0
-  let maxMode = 0
+  let ratioModes = 0;
+  let maxMode = 0;
 
   const keys = Object.keys(playerData.mode);
   keys.forEach((key) => {
-    maxMode = Math.max(maxMode,playerData.mode[key as keyof typeof playerData.mode]);
+    maxMode = Math.max(
+      maxMode,
+      playerData.mode[key as keyof typeof playerData.mode]
+    );
   });
-  ratioModes =  playerData.mode[gameMode] / maxMode;
+  ratioModes = playerData.mode[gameMode] / maxMode;
 
   return 1 - ratioModes;
 }
 
-function GetPlayersEncounteredBonusMalus(playerData: LocalPlayer, opposingPlayer: string) {
-  let ratioEncounters = 0
-  let maxEncounter = 0
+function GetPlayersEncounteredBonusMalus(
+  playerData: LocalPlayer,
+  opposingPlayer: string
+) {
+  let ratioEncounters = 0;
+  let maxEncounter = 0;
 
   const keys = Object.keys(playerData.encounters);
-    keys.forEach((key) => {
-      maxEncounter = Math.max(maxEncounter,playerData.encounters[key as keyof typeof playerData.encounters]);
-    });
+  keys.forEach((key) => {
+    maxEncounter = Math.max(
+      maxEncounter,
+      playerData.encounters[key as keyof typeof playerData.encounters]
+    );
+  });
 
-  ratioEncounters =  playerData.encounters[opposingPlayer] / maxEncounter;
-
-  //console.log("ratio patata", ratioEncounters);
+  ratioEncounters = playerData.encounters[opposingPlayer] / maxEncounter;
 
   return 1 - ratioEncounters;
 }
@@ -210,7 +310,11 @@ async function DebugLeaderboard(db: LocalDatabase) {
       const playerName = _playersTrackedParsed[l.userId];
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
       // return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
-      return {P: l.points, Name: playerName, matches_win: `${matchesWon}/${matchesPlayed}`};
+      return {
+        P: l.points,
+        Name: playerName,
+        matches_win: `${matchesWon}/${matchesPlayed}`,
+      };
     })
   );
 
@@ -218,17 +322,15 @@ async function DebugLeaderboard(db: LocalDatabase) {
 }
 
 async function GetAverageTeamRank(team: string[], db: LocalDatabase) {
-  const playerDataPromises = team.map(player => GetPlayerData(db.players, player));
+  const playerDataPromises = team.map((player) =>
+    GetPlayerData(db.players, player)
+  );
   const playersData = await Promise.all(playerDataPromises);
-  
+
   let sum = 0;
   for (const playerData of playersData) {
     sum += playerData.points;
   }
 
-  //console.log("la patata", sum, team.length);
-
   return sum / team.length;
 }
-
-
