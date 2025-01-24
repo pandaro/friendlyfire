@@ -9,6 +9,7 @@ export interface Match {
   loosingTeam: string[];
   winningTeam: string[];
   teamSize: number;
+  playersCount:number;
   startTime: string;
   map: string;
   gameMode: string;
@@ -26,6 +27,7 @@ export interface DbMatch {
   game_version: string;
   is_public: boolean;
   game_type: string;
+  playersCount: number;
 }
 
 export interface RankedPlayer {

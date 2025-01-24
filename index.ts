@@ -293,6 +293,7 @@ async function ParseMatches(
       // console.log("- tracked players", trackedPlayers);
       console.log("- winning team", _winningTeam);
       console.log("- losing team", _loosingTeam);
+      console.log("- players Count", m.playersCount);
       // console.log("- start time", m.start_time);
       // console.log("- map", m.map);
       // console.log("- game mode", m.game_type);
@@ -306,6 +307,7 @@ async function ParseMatches(
         map: m.map,
         gameMode: m.game_type,
         teamSize: _teamSize,
+        playersCount: m.playersCount,
       };
 
       await config.usedAlgorithm(localDb, match);
