@@ -183,9 +183,9 @@ async function Main() {
             matchesArray.length
           } --------------------------`
         );
-        console.log("parsed match id " + matchesArray[i].id);
-        console.log("- start time", matchesArray[i].startTime);
-        console.log("- team size", matchesArray[i].teamSize);
+        console.log("parsed match id " + matchesArray[i].id,"- start time", matchesArray[i].startTime);
+        // console.log("- start time", matchesArray[i].startTime);
+        //console.log("- team size", matchesArray[i].teamSize);
         console.log(`-------------------------------------------------`);
 
         await config.usedAlgorithm(localDb, matchesArray[i]);

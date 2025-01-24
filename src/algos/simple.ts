@@ -94,7 +94,7 @@ export default async function Simple(
   } //punti di chi perde
 
   await UpdateLeague(match.id, match.startTime, db);
-  // if (debug) await DebugLeaderboard(db);
+  if (debug) await DebugLeaderboard(db);
 }
 
 async function UpdateLeague(
@@ -183,7 +183,7 @@ async function ProcessPlayerPoints(
   let basePoints = points;
   points = points * bonusMalus;
   // Win probability
-  let scaleAdjust = (100 + (scale * (1- ratioPlayers) * (teamSize / 8)));
+  let scaleAdjust = 100 + (scale * (1- ratioPlayers) * (teamSize / 8));
   const winProb =  1 / (1 + Math.pow(10,  teamsAverageDeltaRank / scaleAdjust));
 
   console.log(
@@ -215,7 +215,7 @@ async function ProcessPlayerPoints(
       playerData.name,
       ", scaledPoints:",
       (points * (1 - winProb)).toFixed(2),
-      ", adjust per ratio of players:",
+      ", per ratio of players:",
       (points * (1 - winProb) * ratioPlayers).toFixed(2),
       `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
     );
@@ -227,7 +227,7 @@ async function ProcessPlayerPoints(
       playerData.name,
       ", scaledPoints:",
       (points * winProb).toFixed(2),
-      ", adjust per ratio of players:",
+      ", per ratio of players:",
       (points * winProb * ratioPlayers).toFixed(2),
       `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
     );
@@ -305,7 +305,7 @@ async function DebugLeaderboard(db: LocalDatabase) {
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
       // return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
       return {
-        P: l.points,
+        P: l.points.toFixed(2),
         Name: playerName,
         matches_win: `${matchesWon}/${matchesPlayed}`,
       };
