@@ -184,7 +184,7 @@ async function ProcessPlayerPoints(
   points = points * bonusMalus;
   // Win probability
   let scaleAdjust = 100 + (scale * (1- ratioPlayers) * (teamSize / 8));
-  const winProb =  1 / (1 + Math.pow(10,  teamsAverageDeltaRank / scaleAdjust));
+  const winProb =  1 / (1 + Math.pow(10,  teamsAverageDeltaRank) / scaleAdjust);
 
   console.log(
     `${playerData.name} base points:`,
