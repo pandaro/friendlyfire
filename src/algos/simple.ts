@@ -25,7 +25,7 @@ export default async function Simple(
   const gameMode = match.gameMode;
   const teamSize = match.teamSize;
   const nTrackedPlayers = winningTeam.length + loosingTeam.length;
-  const ratioPlayers = nTrackedPlayers / (teamSize * 2);
+  const ratioPlayers = nTrackedPlayers / match.playersCount;
 
   // If match id is lower than last match id, return
   const league = await GetLeagueData(db.league, "league");
