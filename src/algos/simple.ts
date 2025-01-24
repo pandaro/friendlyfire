@@ -138,7 +138,7 @@ async function ProcessPlayerPoints(
   const startingPoints = playerData.points;
 
   const totalPlayedMatches = playerData.won + playerData.lost;
-  const scale = 1400;
+  const scale = 1300;
   let points = 0;
   if (totalPlayedMatches < 20) {
     points = 80;
@@ -199,7 +199,7 @@ async function ProcessPlayerPoints(
   );
   // Win probability
   const winProb =
-    1 / (1 + Math.pow(10, ( opposingTeamAverageRank - teamAverageRank) / (scale * (1- ratioPlayers) * (teamSize / 8))));
+    1 / (1 + Math.pow(10, ( opposingTeamAverageRank - teamAverageRank) / (100 + (scale * (1- ratioPlayers) * (teamSize / 8)))));
 
   if (winning) {
     playerData.points += points * (1 - winProb) * ratioPlayers;
