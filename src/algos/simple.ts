@@ -94,7 +94,7 @@ export default async function Simple(
   } //punti di chi perde
 
   await UpdateLeague(match.id, match.startTime, db);
-  if (debug) await DebugLeaderboard(db);
+  // if (debug) await DebugLeaderboard(db);
 }
 
 async function UpdateLeague(
@@ -110,7 +110,7 @@ async function UpdateLeague(
 
   for (let i = 0; i < leaderboard.length; i++) {
     const pd = await GetPlayerData(db.players, leaderboard[i].userId);
-    leaderboard[i].points = pd.points - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
+    leaderboard[i].points = pd.points //- Math.max(0, 300 - ((pd.won + pd.lost) * 10));
   }
 
   leaderboard.sort((a, b) => {
@@ -134,7 +134,7 @@ async function ProcessPlayerPoints(
 ) {
   // Get player data and league data from database
   const playerData = await GetPlayerData(db.players, playerId);
-
+  const teamsAverageDeltaRank = teamAverageRank - opposingTeamAverageRank;
   const startingPoints = playerData.points;
 
   const totalPlayedMatches = playerData.won + playerData.lost;
@@ -182,6 +182,9 @@ async function ProcessPlayerPoints(
   );
   let basePoints = points;
   points = points * bonusMalus;
+  // Win probability
+  let scaleAdjust = (100 + (scale * (1- ratioPlayers) * (teamSize / 8)));
+  const winProb =  1 / (1 + Math.pow(10,  teamsAverageDeltaRank / scaleAdjust));
 
   console.log(
     `${playerData.name} base points:`,
@@ -195,11 +198,14 @@ async function ProcessPlayerPoints(
     "bonusMalus:",
     bonusMalus,
     ", POINTS:",
-    points
+    points,
+    " ,scaleAdjust:",
+    scaleAdjust.toFixed(2),
+    " ,winProb:",
+    winProb.toFixed(2),
+
   );
-  // Win probability
-  const winProb =
-    1 / (1 + Math.pow(10, ( opposingTeamAverageRank - teamAverageRank) / (100 + (scale * (1- ratioPlayers) * (teamSize / 8)))));
+
 
   if (winning) {
     playerData.points += points * (1 - winProb) * ratioPlayers;
@@ -207,12 +213,6 @@ async function ProcessPlayerPoints(
     console.log(
       "[WON] player:",
       playerData.name,
-      ", scale:",
-      (scale * (1- ratioPlayers) * (teamSize / 8)).toFixed(2),
-      ", %win:",
-      winProb.toFixed(2),
-      ", oldPoints:",
-      points,
       ", scaledPoints:",
       (points * (1 - winProb)).toFixed(2),
       ", adjust per ratio of players:",
@@ -225,12 +225,6 @@ async function ProcessPlayerPoints(
     console.log(
       "[LOST] player:",
       playerData.name,
-      ", scale:",
-      (scale * (1- ratioPlayers) * (teamSize / 8)).toFixed(2),
-      ", %win:",
-      winProb.toFixed(2),
-      ", oldPoints:",
-      points,
       ", scaledPoints:",
       (points * winProb).toFixed(2),
       ", adjust per ratio of players:",
