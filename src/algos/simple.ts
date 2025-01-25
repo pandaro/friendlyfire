@@ -149,13 +149,13 @@ async function ProcessPlayerPoints(
 
   const totalPlayedMatches = playerData.won + playerData.lost;
   const scale = 1300;
-  let points = 0;
+  let points = Math.abs(teamsAverageDeltaRank);
   if (totalPlayedMatches < 20) {
-    points = 80;
+    points += 80;
   } else if (totalPlayedMatches < 50) {
-    points = 65;
+    points += 65;
   } else {
-    points = 50;
+    points += 50;
   }
 
   // Map related
@@ -187,7 +187,7 @@ async function ProcessPlayerPoints(
 
   // Bonus malus average
   const bonusMalus = Math.max(
-    0.75,
+    0.2,
     (mapBonusMalus + encountersBonusMalusAverage)//+ gameModeBonusMalus
   );
   let basePoints = points;
@@ -199,7 +199,7 @@ async function ProcessPlayerPoints(
 
   console.log(
     `${playerData.name} base points:`,
-    basePoints,
+    basePoints.toFixed(2),
     ", encounters:",
     encountersBonusMalusAverage.toFixed(2),
     ", map:",
@@ -209,7 +209,7 @@ async function ProcessPlayerPoints(
     "bonusMalus:",
     bonusMalus.toFixed(2),
     ", POINTS:",
-    points,
+    points.toFixed(2),
     " ,scaleAdjust:",
     scaleAdjust.toFixed(2),
     " ,winProb:",
