@@ -47,19 +47,19 @@ export default async function Simple(
   const loosingTeamAverageRank = await GetAverageTeamRank(loosingTeam, db);
 
   // Parse winning and loosing team for debuging purposes
-  debug = false;
+  debug = true;
   const winningTeamParsed = winningTeam.map((player) => {
 
-    if (_playersTrackedParsed[player] ==='Alempsio'){
-      debug = true;
-    };
+    // if (_playersTrackedParsed[player] ==='Alempsio'){
+    //   debug = true;
+    // };
     return _playersTrackedParsed[player];
 
   });
   const loosingTeamParsed = loosingTeam.map((player) => {
-    if (_playersTrackedParsed[player] ==='Alempsio'){
-      debug = true;
-    };
+    // if (_playersTrackedParsed[player] ==='Alempsio'){
+    //   debug = true;
+    // };
     return _playersTrackedParsed[player];
   });
   console.log(`- winning team (avg rank ${Math.round(winningTeamAverageRank)})`, winningTeamParsed);
@@ -119,7 +119,7 @@ async function UpdateLeague(
 
   for (let i = 0; i < leaderboard.length; i++) {
     const pd = await GetPlayerData(db.players, leaderboard[i].userId);
-    leaderboard[i].points = pd.points - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
+    leaderboard[i].points = pd.points// - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
   }
 
   leaderboard.sort((a, b) => {
@@ -187,13 +187,13 @@ async function ProcessPlayerPoints(
 
   // Bonus malus average
   const bonusMalus = Math.max(
-    1,
-    (mapBonusMalus + gameModeBonusMalus + encountersBonusMalusAverage) / 3
+    0.75,
+    (mapBonusMalus + encountersBonusMalusAverage)//+ gameModeBonusMalus
   );
   let basePoints = points;
   points = points * bonusMalus;
   // Win probability
-  let scaleAdjust = 100 + (scale * (1- ratioPlayers) * (teamSize / 8));
+  let scaleAdjust = 100 + (scale * (1- ratioPlayers) );//* (teamSize / 8)
   //1 / (1 + Math.pow(10, ( opposingTeamAverageRank - teamAverageRank) / (scale * (1- ratioPlayers) * (teamSize / 8))));
   const winProb =  1 / (1 + Math.pow(10,  ( opposingTeamAverageRank - teamAverageRank)  / scaleAdjust));
 
@@ -203,11 +203,11 @@ async function ProcessPlayerPoints(
     ", encounters:",
     encountersBonusMalusAverage.toFixed(2),
     ", map:",
-    mapBonusMalus,
+    mapBonusMalus.toFixed(2),
     ", mode:",
-    gameModeBonusMalus,
+    gameModeBonusMalus.toFixed(2),
     "bonusMalus:",
-    bonusMalus,
+    bonusMalus.toFixed(2),
     ", POINTS:",
     points,
     " ,scaleAdjust:",
@@ -261,7 +261,7 @@ function GetMapBonusMalus(playerData: LocalPlayer, map: string) {
   });
   ratioMap = playerData.maps[map] / maxMap;
 
-  return 1 - ratioMap;
+  return (1 - ratioMap) / 2;
 }
 
 function GetGameModeBonusMalus(
@@ -301,7 +301,7 @@ function GetPlayersEncounteredBonusMalus(
 
   ratioEncounters = playerData.encounters[opposingPlayer] / maxEncounter;
 
-  return 1 - ratioEncounters;
+  return (1 - ratioEncounters) / 2;
 }
 
 async function DebugLeaderboard(db: LocalDatabase) {
