@@ -119,7 +119,7 @@ async function UpdateLeague(
 
   for (let i = 0; i < leaderboard.length; i++) {
     const pd = await GetPlayerData(db.players, leaderboard[i].userId);
-    leaderboard[i].points = pd.points// - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
+    leaderboard[i].points = pd.points - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
   }
 
   leaderboard.sort((a, b) => {
