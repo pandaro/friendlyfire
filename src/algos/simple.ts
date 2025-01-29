@@ -47,17 +47,17 @@ export default async function Simple(
   const loosingTeamAverageRank = await GetAverageTeamRank(loosingTeam, db);
 
   // Parse winning and loosing team for debuging purposes
-  debug = false;
+  debug = true;
   const winningTeamParsed = winningTeam.map((player) => {
 
-    if (_playersTrackedParsed[player] ==='[smile]Haundreyy'){
+    if (_playersTrackedParsed[player] ===''){
       debug = true;
     };
     return _playersTrackedParsed[player];
 
   });
   const loosingTeamParsed = loosingTeam.map((player) => {
-    if (_playersTrackedParsed[player] ==='[smile]Haundreyy'){
+    if (_playersTrackedParsed[player] ===''){
       debug = true;
     };
     return _playersTrackedParsed[player];
@@ -226,7 +226,7 @@ async function ProcessPlayerPoints(
   };
 
   if (winning) {
-    let pointsAssigned =points * (1 - winProb) * ratioPlayers;
+    let pointsAssigned = (points * (1 - winProb) * ratioPlayers) * 1.1;
     playerData.points += pointsAssigned;
     playerData.won += 1;
     if (debug){
@@ -241,7 +241,8 @@ async function ProcessPlayerPoints(
       );
     };
   } else {
-    let pointsAssigned = points * winProb * ratioPlayers;
+    let pointsAssigned = (points * winProb * ratioPlayers);
+    pointsAssigned = Math.min(playerData.points,pointsAssigned);
     playerData.points -= pointsAssigned;
     playerData.lost += 1;
     if (debug){
