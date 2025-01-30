@@ -50,6 +50,7 @@ export default async function initDiscordBot(localDatabase: LocalDatabase) {
 
         for (let i = 0; i < league.leaderboard.length; i++) {
             const playerData = await GetPlayerData(localDatabase.players, league.leaderboard[i].userId);
+            if(playerData.won + playerData.lost === 0) continue;
             players.push({name: playerData.name, points: league.leaderboard[i].points});
         }
 

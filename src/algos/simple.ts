@@ -4,6 +4,7 @@
   Author: CanestroAnale
   Description: wip
 */
+import  config from "../../config";
 import { _playersTracked, _playersTrackedParsed } from "../..";
 import {
   GetLeagueData,
@@ -27,55 +28,43 @@ export default async function Simple(
   const nTrackedPlayers = winningTeam.length + loosingTeam.length;
   const ratioPlayers = nTrackedPlayers / match.playersCount;
 
-  // If match id is lower than last match id, return
   const league = await GetLeagueData(db.league, "league");
-  if (
-    match.id <= league.lastMatchId
-  ) {
-    //console.log(`Match ${match.id} already processed, skipping...`);
+  if (match.id <= league.lastMatchId) {
     return;
   }
-  if(
-    winningTeam.length === 0 ||
-    loosingTeam.length === 0) {
-      //console.log(`Match ${match.id} has no opposing team, skipping...`);
-      return;
-    }
+  if (winningTeam.length === 0 || loosingTeam.length === 0) {
+    return;
+  }
   await SetMatchData(db.matches, match, match.id);
 
   const winningTeamAverageRank = await GetAverageTeamRank(winningTeam, db);
   const loosingTeamAverageRank = await GetAverageTeamRank(loosingTeam, db);
 
-  // Parse winning and loosing team for debuging purposes
-  debug = true;
+  const debugTargetPlayer = process.env.DEBUG_PLAYER ?? "";
   const winningTeamParsed = winningTeam.map((player) => {
-
-    if (_playersTrackedParsed[player] ===''){
+    if (_playersTrackedParsed[player] === debugTargetPlayer) {
       debug = true;
-    };
+    }
     return _playersTrackedParsed[player];
-
   });
   const loosingTeamParsed = loosingTeam.map((player) => {
-    if (_playersTrackedParsed[player] ===''){
+    if (_playersTrackedParsed[player] === debugTargetPlayer) {
       debug = true;
-    };
+    }
     return _playersTrackedParsed[player];
   });
-  // console.log(`- winning team (avg rank ${Math.round(winningTeamAverageRank)})`, winningTeamParsed);
-  // console.log(`- losing team (avg rank ${Math.round(loosingTeamAverageRank)})`, loosingTeamParsed);
-  if (debug){
-    console.log(
-      "map:",
-      map,
-      ", mode:",
-      gameMode,
-      ", %friendlyfire:",
-      ratioPlayers.toFixed(2),
-      " ,win:", winningTeamParsed, " ,rank:", Math.round(winningTeamAverageRank),
-      " ,lose", loosingTeamParsed, " ,rank:", Math.round(loosingTeamAverageRank),
-    );
-  };
+
+  DebugLog(
+    debug,
+    "map:",
+    map,
+    ", mode:",
+    gameMode,
+    ", %friendlyfire:",
+    ratioPlayers.toFixed(2),
+    " ,win:", winningTeamParsed, " ,rank:", Math.round(winningTeamAverageRank),
+    " ,lose", loosingTeamParsed, " ,rank:", Math.round(loosingTeamAverageRank),
+  );
 
   for (const player of winningTeam) {
     await ProcessPlayerPoints(
@@ -88,10 +77,10 @@ export default async function Simple(
       ratioPlayers,
       winningTeamAverageRank,
       loosingTeamAverageRank,
-      teamSize,
+      match.playersCount,
       debug,
     );
-  } //punti per chi vince
+  }
   for (const player of loosingTeam) {
     await ProcessPlayerPoints(
       false,
@@ -103,10 +92,10 @@ export default async function Simple(
       ratioPlayers,
       loosingTeamAverageRank,
       winningTeamAverageRank,
-      teamSize,
+      match.playersCount,
       debug,
     );
-  } //punti di chi perde
+  }
 
   await UpdateLeague(match.id, match.startTime, db);
   if (debug) await DebugLeaderboard(db);
@@ -119,13 +108,17 @@ async function UpdateLeague(
 ) {
   let league: LocalLeague = await GetLeagueData(db.league, "league");
 
+
   league.lastMatchId = matchId;
   league.lastMatchStartTime = matchStartTime;
-  const leaderboard: { userId: string; points: number }[] = league.leaderboard;
+  const leaderboard: { userId: string; points: number;}[] = league.leaderboard;
 
   for (let i = 0; i < leaderboard.length; i++) {
     const pd = await GetPlayerData(db.players, leaderboard[i].userId);
-    leaderboard[i].points = pd.points //- Math.max(0, 300 - ((pd.won + pd.lost) * 10));
+    leaderboard[i].points = pd.points - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
+    if (leaderboard[i].points < 0) {
+      leaderboard[i].points = 0;
+    }
   }
 
   leaderboard.sort((a, b) => {
@@ -145,37 +138,30 @@ async function ProcessPlayerPoints(
   ratioPlayers: number,
   teamAverageRank: number,
   opposingTeamAverageRank: number,
-  teamSize: number,
+  playersCount: number,
   debug: boolean,
 ) {
-  // Get player data and league data from database
-
   const playerData = await GetPlayerData(db.players, playerId);
   const teamsAverageDeltaRank = teamAverageRank - opposingTeamAverageRank;
   const startingPoints = playerData.points;
 
   const totalPlayedMatches = playerData.won + playerData.lost;
-  const scale = 1300;
-  let points = 100 ;//Math.abs(teamsAverageDeltaRank);
-  // if (totalPlayedMatches < 20) {
-  //   points += 80;
-  // } else if (totalPlayedMatches < 50) {
-  //   points += 65;
-  // } else {
-  //   points += 50;
-  // }
+  const scale = 1200;
+  let points = 0;
+  if (totalPlayedMatches < 10) {
+    points += 100;
+  } else {
+    points += 50;
+  }
 
-  // Map related
   if (!playerData.maps[map]) playerData.maps[map] = 0;
   playerData.maps[map] += 1;
   const mapBonusMalus = GetMapBonusMalus(playerData, map);
 
-  // Game mode related
   if (!playerData.mode[gameMode]) playerData.mode[gameMode] = 0;
   playerData.mode[gameMode] += 1;
   const gameModeBonusMalus = GetGameModeBonusMalus(playerData, gameMode);
 
-  // Players encountered related
   for (const encounterPlayer of opposingTeam) {
     if (!playerData.encounters[encounterPlayer])
       playerData.encounters[encounterPlayer] = 0;
@@ -192,70 +178,64 @@ async function ProcessPlayerPoints(
   }
   encountersBonusMalusAverage = encountersBonusMalusAverage / encounterCounter;
 
-  // Bonus malus average
   const bonusMalus = Math.max(
-    1,
-    (mapBonusMalus + encountersBonusMalusAverage)//+ gameModeBonusMalus
+    0.5,
+    (mapBonusMalus + encountersBonusMalusAverage)
   );
   let basePoints = points;
   points = points * bonusMalus;
-  // Win probability
-  let scaleAdjust = 200 + (scale * (1- ratioPlayers) );//* (teamSize / 8)
-  //1 / (1 + Math.pow(10, ( opposingTeamAverageRank - teamAverageRank) / (scale * (1- ratioPlayers) * (teamSize / 8))));
-  const winProb =  Math.min(1 / (1 + Math.pow(10,  ( opposingTeamAverageRank - teamAverageRank)  / scaleAdjust)),1400);
-  if (debug){
-    console.log(
-      `${playerData.name} base points:`,
-      basePoints.toFixed(2),
-      ", encounters:",
-      encountersBonusMalusAverage.toFixed(2),
-      ", map:",
-      mapBonusMalus.toFixed(2),
-      ", mode:",
-      gameModeBonusMalus.toFixed(2),
-      "bonusMalus:",
-      bonusMalus.toFixed(2),
-      ", POINTS:",
-      points.toFixed(2),
-      " ,scaleAdjust:",
-      scaleAdjust.toFixed(2),
-      " ,winProb:",
-      winProb.toFixed(2),
+  let scaleAdjust = 200 + (scale * (playersCount / 16));
+  const winProb = Math.min(1 / (1 + Math.pow(10, (opposingTeamAverageRank - teamAverageRank) / scaleAdjust)), 1400);
 
-    );
-  };
+  DebugLog(
+    debug,
+    `${playerData.name} base points:`,
+    basePoints.toFixed(2),
+    ", encounters:",
+    encountersBonusMalusAverage.toFixed(2),
+    ", map:",
+    mapBonusMalus.toFixed(2),
+    ", mode:",
+    gameModeBonusMalus.toFixed(2),
+    "bonusMalus:",
+    bonusMalus.toFixed(2),
+    ", POINTS:",
+    points.toFixed(2),
+    " ,scaleAdjust:",
+    scaleAdjust.toFixed(2),
+    " ,winProb:",
+    winProb.toFixed(2),
+  );
 
   if (winning) {
     let pointsAssigned = (points * (1 - winProb) * ratioPlayers) * 1.1;
     playerData.points += pointsAssigned;
     playerData.won += 1;
-    if (debug){
-      console.log(
-        "[WON] player:",
-        playerData.name,
-        ", scaledPoints:",
-        (points * (1 - winProb)).toFixed(2),
-        ", per ratio of players:",
-        pointsAssigned.toFixed(2),
-        `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
-      );
-    };
+    DebugLog(
+      debug,
+      "[WON] player:",
+      playerData.name,
+      ", scaledPoints:",
+      (points * (1 - winProb)).toFixed(2),
+      ", per ratio of players:",
+      pointsAssigned.toFixed(2),
+      `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
+    );
   } else {
     let pointsAssigned = (points * winProb * ratioPlayers);
-    pointsAssigned = Math.min(playerData.points,pointsAssigned);
+    pointsAssigned = Math.min(playerData.points, pointsAssigned);
     playerData.points -= pointsAssigned;
     playerData.lost += 1;
-    if (debug){
-      console.log(
-        "[LOST] player:",
-        playerData.name,
-        ", scaledPoints:",
-        (points * winProb).toFixed(2),
-        ", per ratio of players:",
-        pointsAssigned.toFixed(2),
-        `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
-      );
-    };
+    DebugLog(
+      debug,
+      "[LOST] player:",
+      playerData.name,
+      ", scaledPoints:",
+      (points * winProb).toFixed(2),
+      ", per ratio of players:",
+      pointsAssigned.toFixed(2),
+      `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
+    );
   }
 
   await SetPlayerData(db.players, playerData, playerId);
@@ -330,6 +310,9 @@ async function DebugLeaderboard(db: LocalDatabase) {
       // return {userId: l.userId, points: l.points, name: playerName, matchesPlayed: matchesPlayed};
       // return {p: l.points, name: playerName, matches: `${matchesPlayed}/${matchesWon}W/${matchesLost}L`};
 
+      // Dont show players with 0 matches played
+      if (matchesPlayed === 0) return
+
       return {
         P: l.points.toFixed(2),
         Name: playerName,
@@ -353,4 +336,10 @@ async function GetAverageTeamRank(team: string[], db: LocalDatabase) {
   }
 
   return sum / team.length;
+}
+
+function DebugLog(debug: boolean, ...args: any[]) {
+  if (debug) {
+    console.log(...args);
+  }
 }

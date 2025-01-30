@@ -188,7 +188,7 @@ async function Main() {
         //console.log("- team size", matchesArray[i].teamSize);
         console.log(`-------------------------------------------------`);
 
-        await config.usedAlgorithm(localDb, matchesArray[i]);
+        await config.usedAlgorithm(localDb, matchesArray[i], config.debugMode);
       }
     } else {
       console.log("No matches found, nothing to update!");
@@ -310,7 +310,7 @@ async function ParseMatches(
         playersCount: m.playersCount,
       };
 
-      await config.usedAlgorithm(localDb, match);
+      await config.usedAlgorithm(localDb, match, config.debugMode);
       console.log(
         `----------------------^ ${index + 1}/${
           matches.length
