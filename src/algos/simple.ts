@@ -226,7 +226,7 @@ async function ProcessPlayerPoints(
   };
 
   if (winning) {
-    let pointsAssigned = (points * (1 - winProb) * ratioPlayers) * 1.1;
+    let pointsAssigned = 1 + (points * (1 - winProb) * ratioPlayers) * 1.1;
     playerData.points += pointsAssigned;
     playerData.won += 1;
     if (debug){
@@ -241,7 +241,7 @@ async function ProcessPlayerPoints(
       );
     };
   } else {
-    let pointsAssigned = (points * winProb * ratioPlayers);
+    let pointsAssigned = 1 - (points * winProb * ratioPlayers);
     pointsAssigned = Math.min(playerData.points,pointsAssigned);
     playerData.points -= pointsAssigned;
     playerData.lost += 1;
