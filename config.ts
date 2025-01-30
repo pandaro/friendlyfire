@@ -2,10 +2,12 @@ import Simple from "./src/algos/simple";
 import template from "./src/algos/template";
 
 const config: Config = {
-  StartTime: "2024-12-19",//Formato valido: 2024-10-15T00:24:15.000Z
+  StartTime: "2025-01-01",//Formato valido: 2024-10-15T00:24:15.000Z
   EndTime: new Date().toISOString().toString(),//non funziona da passare alle query
   api: "https://api.bar-rts.com/",
   dataRetrievalMethod: "api",
+  debugMode: false,
+  initialPlayersPoints: 300,
   trackedPlayers: [
     256,  //'bio'
     212653,  //'[smile]ToxicLasagna'
@@ -38,9 +40,9 @@ const config: Config = {
     // 21505,  //'Wildcat'
     // 21949,  //'pyro066'
     // 26124,  //'Ruggi'
-    39616,  //'ADAW'
+    // 39616,  //'ADAW'
     // 39779,  //'Denny00'
-    40361,  //'DavideBlade'
+    // 40361,  //'DavideBlade'
     // 41483,  //'[ITA]Sbuffox'
     // 41491,  //'TeoPorco'
     // 45360,  //'Stelfirio'
@@ -51,7 +53,7 @@ const config: Config = {
     // 89223,  //'neuris'
     // 89323,  //'Sbrock'
     // 90038,  //'[SG]CMDR_Zod'
-    92522,  //'goris'
+    // 92522,  //'goris'
     // 99194,  //'isbad234'
     106915,  //'cacioimperatore'
     114674,  //'gabibo'
@@ -67,16 +69,16 @@ const config: Config = {
     // 176776,  //'LiveviL'
     177687,  //'JarmenEnza'
     177924,  //'GrandiCasso'
-    // 179932,  //'Shimada'
-    // 185508,  //'[GAJ]Eddyff1988'
+    179932,  //'Shimada'
+    185508,  //'[GAJ]Eddyff1988'
     190417,  //'Mavericko'
-    // 191510,  //'Pitti_Uomo'
+    191510,  //'Pitti_Uomo'
     202326,  //'ITALIA'
     202374,  //'CanestroAnale'
     // 205325,  //'Ale1199'
     // 209507,  //'[FDL]Panikz'
     // 212542,  //'Mr_T4k'
-    212556,  //'Fra'
+    // 212556,  //'Fra'
     // 212631,  //'Luken'
     // 290972,  //'Lowi'
     // 300380,  //'paglamo'
@@ -89,17 +91,17 @@ const config: Config = {
     // 88920,   //'Babygay'
     // 102435,  //'AlathZ'
     // 21400,   //'hojo'
-    111939,  //'aladipollo'
+    // 111939,  //'aladipollo'
     // 132880,  //'unorthodox-flagshipenjoier'
     // 142872,  //'pollo'
     // 300326,  //'agentepeppow'
     // 85699,   //'3ss3'
-    295189,  //'spaam'
+    // 295189,  //'spaam'
     // 147330,  //'prese_3'
-    65528,   //'Alempsio'
+    // 62528,   //'Alempsio'
     // 198167,   //'Blackskull93'
     // 198171,   //'Castoro'
-    227107   //'NGobbux'
+    // 227107   //'NGobbux'
   ],
   usedAlgorithm: Simple,
 };
@@ -112,4 +114,6 @@ interface Config {
   trackedPlayers: number[];
   usedAlgorithm: Function;
   dataRetrievalMethod?: 'api' | 'dumpDb';
+  debugMode?: boolean;
+  initialPlayersPoints?: number;
 }

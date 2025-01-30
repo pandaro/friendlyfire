@@ -46,6 +46,7 @@ export async function GetMatchData(matchId: MatchId): Promise<Match> {
         loosingTeam: [],
         winningTeam: [],
         teamSize: 0,
+        playersCount: 0,
         startTime: "",
         map: "",
         gameMode: ""
@@ -57,12 +58,13 @@ export async function GetMatchData(matchId: MatchId): Promise<Match> {
         const teams = response.data.AllyTeams;
         const winTeam = [];
         const losTeam = [];
+        let playersCount = 0;
 
         // Get winning and loosing team
         for (let i = 0; i < teams.length; i++) {
             for (let ii = 0; ii < teams[i].Players.length; ii++) {
                 const player = teams[i].Players[ii];
-
+                playersCount ++;
                 // if (player.countryCode == _ItCountryCode) {
                 //     if (teams[i].winningTeam) {
                 //         winTeam.push(player.userId);
@@ -84,6 +86,7 @@ export async function GetMatchData(matchId: MatchId): Promise<Match> {
 
         matchData.loosingTeam = losTeam;
         matchData.winningTeam = winTeam;
+        matchData.playersCount = playersCount;
         matchData.id = response.data.hostSettings.server_match_id;
         matchData.startTime = response.data.startTime;
         matchData.map = response.data.hostSettings.mapname;
