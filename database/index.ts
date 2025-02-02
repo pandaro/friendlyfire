@@ -24,7 +24,7 @@ export function initLocalDatabase(): LocalDatabase {
 
 export async function AddPlayerToDatabase(db: LocalDatabase, playerId: string, playerName: string) {
   console.log(`Adding ${playerId} - ${_playersTrackedParsed[playerId]} to database`);
-  const _p = { name: playerName, won:0, lost:0, points: config.initialPlayersPoints ?? 0, maps: {}, teamMates: {}, wins: {}, losses: {}, mode:{}, encounters:{} };
+  const _p = { name: playerName, won:0, lost:0, points: config.initialPlayersPoints ?? 0, maps: {}, teamMates: {}, wins: {}, losses: {}, mode:{}, encounters:{}, id: parseInt(playerId) };
   await SetPlayerData(db.players, _p, playerId);
 
   await AddPlayerToLeaderboard(playerId, _p.points, db);

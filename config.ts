@@ -3,7 +3,7 @@ import template from "./src/algos/template";
 
 const config: Config = {
   StartTime: "2025-01-01",//Formato valido: 2024-10-15T00:24:15.000Z
-  EndTime: new Date().toISOString().toString(),//non funziona da passare alle query
+  EndTime: new Date().toISOString().toString(),
   api: "https://api.bar-rts.com/",
   dataRetrievalMethod: "api",
   debugMode: false,
@@ -104,6 +104,12 @@ const config: Config = {
     // 227107   //'NGobbux'
   ],
   usedAlgorithm: Simple,
+  discordOptions: {
+    trackedPlayersChannelThreadId: "1316149591720333464",
+    announcementsChannelId: "1313143385657446430",
+    leagueDataChannelThreadId: "1335575776568934532",
+    playersDataChannelThreadId: "1335575864317972500",
+  },
 };
 
 export default config;
@@ -116,4 +122,10 @@ interface Config {
   dataRetrievalMethod?: 'api' | 'dumpDb';
   debugMode?: boolean;
   initialPlayersPoints?: number;
+  discordOptions: {
+    trackedPlayersChannelThreadId: string;
+    announcementsChannelId: string;
+    leagueDataChannelThreadId: string;
+    playersDataChannelThreadId: string;
+  };
 }

@@ -8,6 +8,8 @@ import {
   DbMatch,
   PlayerMatch,
   LocalDatabase,
+  LocalLeague,
+  LocalPlayer,
 } from "./src/types/index.js";
 import initDatabase, {
   AddPlayerToDatabase,
@@ -21,40 +23,58 @@ import {
   LoadPlayers,
 } from "./database/queries";
 import { Database } from "duckdb-async";
-import { GetLeagueData } from "./database/localQueries";
+import { GetLeagueData, SetLeagueData, SetPlayerData } from "./database/localQueries";
 import {
   GetMatchData,
   GetPlayerMatchesIds,
 } from "./database/replaysApiQueries";
-import initDiscordBot from "./discord";
+import initDiscordBot, { DiscordUpdateLeagueData, ReadyClient } from "./discord";
 const dotenv = require("dotenv");
 
 dotenv.config();
-
-const scriptParams = process.argv.slice(2);
-
-if (scriptParams.length > 0) {
-  if (scriptParams[0] === "debug") {
-  }
-}
 
 export var _playersTracked = config.trackedPlayers;
 export var _playersTrackedParsed: { [key: string]: string } = {};
 let dumpDb: Database;
 const localDb: LocalDatabase = initLocalDatabase();
+let dsBot: ReadyClient;
+let waitingForData = true;
 
-initDatabase().then((_db) => {
-  dumpDb = _db;
+if (process.env.RUN_DS_BOT === "1") {
+  // Initialize discord bot
+  initDiscordBot(SetDataFromDiscordDatabase).then(async (clientDs: string) => {
+    await initDatabase().then(async (_db) => {
+      dumpDb = _db;
+    
+      // Wait for the data to be set from discord
+      while (waitingForData) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
 
-  Main();
-});
+      await Main();
+
+      // Update data and leaderboard on discord
+      DiscordUpdateLeagueData(localDb, dsBot as ReadyClient);
+    });
+
+   });
+} else {
+  initDatabase().then((_db) => {
+    dumpDb = _db;
+  
+    Main();
+  });
+}
+
+
 
 async function Main() {
   // Build the date range
   let StartDate = new Date(config.StartTime);
-  let EndTime = new Date(config.EndTime); //TO DO gestirlo in query
+  let EndTime = new Date(config.EndTime);
   console.log("StartDate: " + StartDate.toISOString());
   console.log("EndTime: " + EndTime.toISOString());
+
   //Check valid date
   if (isNaN(StartDate.getTime()) || isNaN(EndTime.getTime())) {
     return;
@@ -224,10 +244,7 @@ async function Main() {
     }
   }
 
-  if (process.env.RUN_DS_BOT === "1") {
-    // Initialize discord bot
-    initDiscordBot(localDb);
-  }
+
 }
 
 // Return an array of Match objects
@@ -289,14 +306,9 @@ async function ParseMatches(
       );
 
       console.log("parsed match id " + m.match_id);
-      // console.log("players in match", matchPlayers);
-      // console.log("- tracked players", trackedPlayers);
       console.log("- winning team", _winningTeam);
       console.log("- losing team", _loosingTeam);
       console.log("- players Count", m.playersCount);
-      // console.log("- start time", m.start_time);
-      // console.log("- map", m.map);
-      // console.log("- game mode", m.game_type);
       console.log(`-------------------------------------------------`);
 
       const match: Match = {
@@ -320,4 +332,18 @@ async function ParseMatches(
       return match;
     })
   );
+}
+
+async function SetDataFromDiscordDatabase(trackedPlayers: number[], league: LocalLeague, players: LocalPlayer[], bot: any) {
+  console.log("Setting data from discord database...");
+  _playersTracked = trackedPlayers;
+  dsBot = bot;
+  waitingForData = false;
+  league = league ?? { lastMatchId: "0", lastMatchStartTime: "", leaderboard: [] };
+
+  await SetLeagueData(localDb.league, league, "league");
+
+  for (const player of Object.values(players)) {
+    await SetPlayerData(localDb.players, player, player.id.toString());
+  }
 }
