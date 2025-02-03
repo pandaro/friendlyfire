@@ -52,6 +52,7 @@ export interface LocalPlayer {
   teamMates: { [key: string]: number }; // TODO: da togliere
   encounters: { [key: string]: number };
   mode: { [key: string]: number };
+  unclaimedPoints: number;
   id: number;
 }
 

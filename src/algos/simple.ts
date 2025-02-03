@@ -115,7 +115,7 @@ async function UpdateLeague(
 
   for (let i = 0; i < leaderboard.length; i++) {
     const pd = await GetPlayerData(db.players, leaderboard[i].userId);
-    leaderboard[i].points = pd.points - Math.max(0, 300 - ((pd.won + pd.lost) * 10));
+    leaderboard[i].points = pd.points - Math.max(0, pd.unclaimedPoints);
     if (leaderboard[i].points < 0) {
       leaderboard[i].points = 0;
     }
@@ -237,6 +237,7 @@ async function ProcessPlayerPoints(
       `, ${startingPoints.toFixed(2)} ---> ${playerData.points.toFixed(2)}`,
     );
   }
+  playerData.unclaimedPoints -= 10 * ratioPlayers;
 
   await SetPlayerData(db.players, playerData, playerId);
 }
