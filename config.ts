@@ -2,7 +2,7 @@ import Simple from "./src/algos/simple";
 import template from "./src/algos/template";
 
 const config: Config = {
-  StartTime: "2025-01-01",//Formato valido: 2024-10-15T00:24:15.000Z
+  StartTime: "2025-02-07",//Formato valido: 2024-10-15T00:24:15.000Z
   EndTime: new Date().toISOString().toString(),
   api: "https://api.bar-rts.com/",
   dataRetrievalMethod: "api",
