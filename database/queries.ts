@@ -29,6 +29,7 @@ export async function LoadPlayersIds(db: Database, trackedPlayers: string[]): Pr
 
 export async function LoadPlayers(db: Database, trackedPlayers: number[]): Promise<PlayersMatches> {
     const parsedPlayers = trackedPlayers.map(player => `'${player}'`).join(',');
+
     const query = `
     SELECT user_id, name
     FROM 'https://data-marts.beyondallreason.dev/players.parquet'

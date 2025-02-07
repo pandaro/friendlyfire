@@ -1,6 +1,7 @@
 import config from "../config.js";
 import axios from "axios";
 import { Match, MatchId, QueryDateRange, RankedPlayer } from "../src/types";
+import { _playersTracked } from "../index.js";
 
 
 const _ItCountryCode = "IT";
@@ -73,7 +74,7 @@ export async function GetMatchData(matchId: MatchId): Promise<Match> {
                 //     }
                 // }
                 
-                if (config.trackedPlayers.includes(player.userId)) {
+                if (_playersTracked.includes(player.userId)) {
                     if (teams[i].winningTeam) {
                         winTeam.push(player.userId);
                     } else {
