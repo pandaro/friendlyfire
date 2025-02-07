@@ -1,3 +1,5 @@
+.env
+
 # Storage files
 /storage
 /bkp

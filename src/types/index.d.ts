@@ -1,4 +1,4 @@
-import { Store } from "@keyvhq/core";
+import { Store, Database } from "@keyvhq/core";
 
 // Define an interface to represent a team member
 export interface PlayersMatches { [key: string]: {name?: string, teamId?: string} }
@@ -8,6 +8,8 @@ export interface Match {
   id: MatchId;
   loosingTeam: string[];
   winningTeam: string[];
+  teamSize: number;
+  playersCount:number;
   startTime: string;
   map: string;
   gameMode: string;
@@ -25,6 +27,7 @@ export interface DbMatch {
   game_version: string;
   is_public: boolean;
   game_type: string;
+  playersCount: number;
 }
 
 export interface RankedPlayer {
@@ -32,18 +35,25 @@ export interface RankedPlayer {
   rank: number;
 }
 
-export interface LocalDatabase {
+export interface LocalDatabase extends Database {
   matches: Store<MatchId, Match>;
   players: Store<string, any>;
   league: Store<string, any>;
 }
 
 export interface LocalPlayer {
+  name: string;
   points: number;
-  wins: { [key: string]: number };
+  won: number;
+  lost: number;
+  wins: { [key: string]: number }; // TODO: da togliere
+  maps: { [key:string]:number}
   losses: { [key: string]: number };
-  teamMates: { [key: string]: number };
+  teamMates: { [key: string]: number }; // TODO: da togliere
+  encounters: { [key: string]: number };
   mode: { [key: string]: number };
+  unclaimedPoints: number;
+  id: number;
 }
 
 export interface LocalMatch {
