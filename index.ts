@@ -72,6 +72,7 @@ async function Main() {
   // Build the date range
   let StartDate = new Date(config.StartTime);
   let EndTime = new Date(config.EndTime);
+  EndTime.setDate(EndTime.getDate() + 1)
   console.log("StartDate: " + StartDate.toISOString());
   console.log("EndTime: " + EndTime.toISOString());
 
